@@ -28,7 +28,6 @@ import Calculator from './../Calculator/Calculator';
 import TruckNorris from './../TruckNorris/TruckNorris';
 import ZoneCalculator from './../ZoneCalculator/ZoneCalculator';
 import { authContext } from '../../adalConfig';
-import { restrictedUsers } from '../../config/restricted'
 
 /**
  * Main component in the TAXIBOX staff app. 
@@ -43,9 +42,7 @@ const Dashboard = () => {
    * Handles the left drawer open state.
    */
   const handleDrawerOpen = () => {
-    if (!isUserRestricted()) {
-      setOpen(true);
-    }
+    setOpen(true);
   };
 
   /**
@@ -58,12 +55,6 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     authContext.logOut();
-  }
-
-  // Check whether the current user is a restricted user.
-  const isUserRestricted = () => {
-    //@ts-ignore
-    return restrictedUsers.indexOf(authContext._user.profile.unique_name.toLowerCase()) > -1
   }
 
   /**
