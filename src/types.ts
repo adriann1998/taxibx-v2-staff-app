@@ -1,0 +1,1 @@
+export type NavMenuItem = 'trucknorris' | 'calculator' | 'zone-calculator';
