@@ -16,6 +16,7 @@
     "@types/react-dom": "^17.0.0",
     "axios": "^0.24.0",
     "classnames": "^2.3.1",
+    "cuid": "^2.1.8",
     "graphql": "^15.7.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",

@@ -10,7 +10,7 @@ export type ValidState = 'VIC' | 'NSW' | 'QLD';
 
 export type City = 'Melbourne' | 'Sydney' | 'Brisbane';
 
-export interface LimitData {
+export interface UserModData {
   id: string;
   limits?: {
     did: string;
@@ -20,7 +20,7 @@ export interface LimitData {
     upper: string;
     user: string;
   }[];
-  messages: {
+  message: {
     did: string;
     ip: string;
     message: string;
@@ -39,7 +39,30 @@ export interface LimitData {
     ttl: number;
     user: string;
   }[];
+  holiday: Holiday[];
 };
+
+export interface CalculationData {
+  addedOn: number;
+  calculation: {[key in string]: {
+    [key in string]: {
+      am: number;
+      anytime: number;
+      customers: number[];
+      delivery: number;
+      dfCount: number;
+      pickup: number;
+      pm: number;
+      sdp: number;
+      trailers: number;
+      wos: number;
+      zone3: string[];
+      zone4: string[];
+    }
+  }}
+  id: number;
+  ttl: number;
+}
 
 export interface SiteData {
   date: string;
@@ -55,7 +78,10 @@ export interface SiteData {
     pm: number;
     sdp: number;
     trailers: number;
+    wos: number;
     zone3: string[];
+    zone4: string[];
+    customMessage?: string;
   };
   limits: any[];
 };

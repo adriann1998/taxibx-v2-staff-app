@@ -4,7 +4,8 @@ import moment from 'moment';
 import { 
   DateAndTrailerLimitData,
   SiteData,
-  LimitData,
+  UserModData,
+  SiteID,
 } from '../../types';
 
 const SiteStats = ({
@@ -13,6 +14,8 @@ const SiteStats = ({
   userMods,
   executeOnce,
   site,
+  userEditingTruckNorrisData,
+  setUserEditingTruckNorrisData,
 }: SiteStatsProps) => {
 
   const getUserModsForTheDate = (date: string) => {
@@ -23,26 +26,34 @@ const SiteStats = ({
   }
 
   //console.log(this.props.siteData);
-  const generated = this.props.siteData.map((stat, index) => {
+  const generated = siteData.map((stat, index) => {
     let component = null;
     // Check whether the date is Monday, If so add a gap
     if (moment(stat.date).day() === 6) {
       component = <div key={index + stat.date} >
         <DayStatComponent
-          dateAndTrailerLimits={this.props.dateAndTrailerLimits}
+          dateAndTrailerLimits={dateAndTrailerLimits}
           day={stat}
-          site={this.props.site}
-          executeOnce={this.props.executeOnce}
-          userMods={this.getUserModsForTheDate(stat.date)} />
+          site={site}
+          executeOnce={executeOnce}
+          userMods={getUserModsForTheDate(stat.date)}
+          userEditingTruckNorrisData={userEditingTruckNorrisData}
+          setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+        />
         <br /><br /></div>;
     } else {
-      component = <DayStatComponent
-        dateAndTrailerLimits={this.props.dateAndTrailerLimits}
-        key={index + stat.date}
-        day={stat}
-        userMods={this.getUserModsForTheDate(stat.date)}
-        executeOnce={this.props.executeOnce}
-        site={this.props.site} />;
+      component = (
+        <DayStatComponent
+          dateAndTrailerLimits={dateAndTrailerLimits}
+          key={index + stat.date}
+          day={stat}
+          site={site} 
+          executeOnce={executeOnce}
+          userMods={getUserModsForTheDate(stat.date)}
+          userEditingTruckNorrisData={userEditingTruckNorrisData}
+          setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+        />
+      );
     }
 
     return component;
@@ -55,11 +66,14 @@ const SiteStats = ({
   )
 }
 
-
 interface SiteStatsProps {
   dateAndTrailerLimits: DateAndTrailerLimitData;
   siteData: SiteData[];
-  userMods: LimitData[]
+  userMods: UserModData[];
+  executeOnce: () => void;
+  site: SiteID;
+  userEditingTruckNorrisData: boolean;
+  setUserEditingTruckNorrisData: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default SiteStats;

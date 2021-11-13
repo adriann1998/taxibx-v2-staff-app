@@ -19,32 +19,34 @@ import {
   Holiday,
   DateAndTrailerLimitData,
   DayOfTheWeek,
-  LimitData,
+  UserModData,
   SiteData,
+  CalculationData,
 } from '../../types';
+import { Resolver } from "dns";
 
 const TruckNorris = () => {
   const classes = useStyles();
   const [userEditingTruckNorrisData, setUserEditingTruckNorrisData] = useState<boolean>(false);
   const [state, setState] = useState<{
     dateAndTrailerLimits: DateAndTrailerLimitData[];
-    calculationData?: any;
+    calculationData: CalculationData[];
     holidays: HolidayData[];
     melbourne?: SiteData[];
     sydney?: SiteData[];
     brisbane?: SiteData[];
-    userModifications?: LimitData[],
+    userModifications: UserModData[],
     melNotes: string;
     sydNotes: string;
     brisNotes: string;
   }>({
     dateAndTrailerLimits: [],
-    calculationData: undefined,
+    calculationData: [],
     holidays: [],
     melbourne: [],
     sydney: [],
     brisbane: [],
-    userModifications: undefined,
+    userModifications: [],
     melNotes: "",
     sydNotes: "",
     brisNotes: "",
@@ -58,6 +60,7 @@ const TruckNorris = () => {
   let loadInterval: NodeJS.Timeout;
   
   useEffect(() => {
+    console.log(holidaysResult)
     executeOnce();
     // Load data every minute if the user is not editing data
     if (!userEditingTruckNorrisData) {
@@ -75,15 +78,15 @@ const TruckNorris = () => {
         if (
           state.holidays &&
           state.calculationData &&
-          state.dateAndTrailerLimits &&
-          !stateValuesSet
+          state.dateAndTrailerLimits 
+          // !stateValuesSet
         ) {
-          stateValuesSet = true;
+          // stateValuesSet = true;
           prepareData();
         }
       }, 45 * 1000);
     }
-  }, [])
+  }, [holidaysResult]);
 
   // Clear interval when unmount
   useEffect(() => {
@@ -185,7 +188,9 @@ const TruckNorris = () => {
             pm: 0,
             sdp: 0,
             trailers: 0,
+            wos: 0,
             zone3: [],
+            zone4: [],
           },
           limits: [],
         };
@@ -283,99 +288,105 @@ const TruckNorris = () => {
       if (
         state.holidays &&
         state.calculationData &&
-        state.dateAndTrailerLimits &&
-        !stateValuesSet
+        state.dateAndTrailerLimits 
+        // !stateValuesSet
       ) {
-        stateValuesSet = true;
+        // stateValuesSet = true;
         prepareData();
       }
     }, 500);
   };
 
   const loadData = () => {
-    if (
-      holidaysResult &&
-      holidaysResult.data &&
-      holidaysResult.data.getAllHolidays &&
-      JSON.parse(holidaysResult.data.getAllHolidays).length
-    ) {
-      const holidays: HolidayData[] = JSON.parse(holidaysResult.data.getAllHolidays);
-      // Set holidays state
-      setState({
-        ...state,
-        holidays: holidays
-      });
-    };
 
-    stateValuesSet = false;
-
-    // Configure instance
-    const axiosInstance = axios.create({
-      baseURL: apiURL,
-      timeout: 35000,
-      headers: {
-        'x-api-key': process.env.REACT_APP_TAXIBOX_API_KEY || '',
-      },
-    });
+    // stateValuesSet = false;
 
     // Retrieve calculation data
-    axiosInstance
-      .get("/")
-      .then((response) => {
-        // console.log(response);
-        if (response.data.length) {
-          // console.log(response.data)
-          setState({ 
-            ...state,
-            calculationData: response.data,
-          });
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    const getCalculationPromise = new Promise<CalculationData[]>((resolve, reject) => {
+      axiosInstance
+        .get("/")
+        .then((response) => { 
+          resolve(response.data);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }) 
 
     // Retrieve limits
-    axiosInstance
-      .get("/limits")
-      .then((response) => {
-        // console.log(response);
-        setState({ 
-          ...state,
-          dateAndTrailerLimits: response.data,
+    const getLimitsPromise = new Promise<DateAndTrailerLimitData[]>((resolve, reject) => {
+      axiosInstance
+        .get("/limits")
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          console.log(error);
         });
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    })
+    
 
     // Retrieve user changes
     const dates = getRemainingWorkingDaysof4Weeks();
-    axiosInstance
-      .post("/userchanges", dates)
-      .then((response) => {
-        // console.log(response);
-        setState({
-          ...state,
-          userModifications: response.data,
+    const getUserModsPromise = new Promise<UserModData[]>((resolve, reject) => {
+      axiosInstance
+        .post("/userchanges", dates)
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          console.log(error);
         });
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    })
+    
 
     // Retrieve city notes only when not editing
-    fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
-      .then((data) => data.json())
-      .then((data) => {
-        setState({
-          ...state,
-          melNotes: data.filter((d: CityNoteData) => d.city === "Melbourne")[0].notes,
-          sydNotes: data.filter((d: CityNoteData) => d.city === "Sydney")[0].notes,
-          brisNotes: data.filter((d: CityNoteData) => d.city === "Brisbane")[0].notes,
+    const getCityNotesPromise = new Promise<{city: string, notes: string}[]>((resolve, reject) => {
+      fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
+        .then((data) => data.json())
+        .then((data) => {
+          resolve(data)
         });
-      });
+    })
+    
+    // Wait for all promises to complete
+    Promise.all([
+      getCalculationPromise,
+      getLimitsPromise,
+      getUserModsPromise,
+      getCityNotesPromise,
+    ]).then(results => {
+      if (
+        holidaysResult &&
+        holidaysResult.data &&
+        holidaysResult.data.getAllHolidays &&
+        JSON.parse(holidaysResult.data.getAllHolidays).length
+      ) {
+        // ge the promise results
+        const getCalculationResult = results[0];
+        const getLimitsResult = results[1];
+        const getUserModsResult = results[2];
+        const getCityNotesResult = results[3];
+        const holidays: HolidayData[] = JSON.parse(holidaysResult.data.getAllHolidays);
+
+        // set state all at once (to prevent re-rendering)
+        setState({ 
+          ...state,
+          calculationData: getCalculationResult,
+          dateAndTrailerLimits: getLimitsResult,
+          userModifications: getUserModsResult,
+          melNotes: getCityNotesResult.filter((d: CityNoteData) => d.city === "Melbourne")[0].notes,
+          sydNotes: getCityNotesResult.filter((d: CityNoteData) => d.city === "Sydney")[0].notes,
+          brisNotes: getCityNotesResult.filter((d: CityNoteData) => d.city === "Brisbane")[0].notes,
+          holidays: holidays,
+        });
+      }    
+    })
   };
+
+  useEffect(() => {
+    console.log(state);
+  }, [state]);
 
   /**
    * Returns user modifications for the given site
@@ -389,13 +400,6 @@ const TruckNorris = () => {
     }
     return [];
   };
-
-  useEffect(() => {
-    loadData();
-  }, [holidaysResult]);
-
-  // return null;
-  console.log(state);
 
   return (
     <div className={classes.root}>
@@ -421,6 +425,8 @@ const TruckNorris = () => {
               userMods={getUserModificationsForTheSite(SITE_MELBOURNE)}
               executeOnce={executeOnce}
               site={SITE_MELBOURNE}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
             />
           ) : (
             <CircularProgress className={classes.progress} />
@@ -435,14 +441,15 @@ const TruckNorris = () => {
           <br />
           <br />
           {state.sydney ? (
-            null
-            // <SiteStats
-            //   dateAndTrailerLimits={getLimitsForSite(SITE_SYDNEY)}
-            //   userMods={getUserModificationsForTheSite(SITE_SYDNEY)}
-            //   siteData={state.sydney}
-            //   executeOnce={executeOnce}
-            //   site={SITE_SYDNEY}
-            // />
+            <SiteStats
+              dateAndTrailerLimits={getLimitsForSite(SITE_SYDNEY)}
+              userMods={getUserModificationsForTheSite(SITE_SYDNEY)}
+              siteData={state.sydney}
+              executeOnce={executeOnce}
+              site={SITE_SYDNEY}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+            />
           ) : (
             <CircularProgress className={classes.progress} />
           )}
@@ -456,14 +463,15 @@ const TruckNorris = () => {
           <br />
           <br />
           {state.brisbane ? (
-            null
-            // <SiteStats
-            //   dateAndTrailerLimits={getLimitsForSite(SITE_BRISBANE)}
-            //   userMods={getUserModificationsForTheSite(SITE_BRISBANE)}
-            //   siteData={state.brisbane}
-            //   executeOnce={executeOnce}
-            //   site={SITE_BRISBANE}
-            // />
+            <SiteStats
+              dateAndTrailerLimits={getLimitsForSite(SITE_BRISBANE)}
+              userMods={getUserModificationsForTheSite(SITE_BRISBANE)}
+              siteData={state.brisbane}
+              executeOnce={executeOnce}
+              site={SITE_BRISBANE}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+            />
           ) : (
             <CircularProgress className={classes.progress} />
           )}
@@ -564,8 +572,17 @@ const SITE_MELBOURNE: SiteID = 1867;
 const SITE_SYDNEY: SiteID = 7312;
 const SITE_BRISBANE: SiteID = 31303;
 
-let stateValuesSet = false;
+// let stateValuesSet = false;
+
+// AXIOS Configuration instance
 const apiURL = "https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod";
+const axiosInstance = axios.create({
+  baseURL: apiURL,
+  timeout: 35000,
+  headers: {
+    'x-api-key': process.env.REACT_APP_TAXIBOX_API_KEY || '',
+  },
+});
 
 const getISODate = (date: string) => {
   const splittedDate = date.split("-");
