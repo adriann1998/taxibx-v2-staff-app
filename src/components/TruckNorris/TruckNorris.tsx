@@ -180,7 +180,7 @@ const TruckNorris = () => {
       fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
         .then((data) => data.json())
         .then((data) => {
-          // console.log('CITY NOTES ==============');
+          // console.log('CITY NOTES ==============')
           // console.log(data);
           setCityNotes({
             melNotes: data.filter((d: any) => d.city === "Melbourne")[0].notes,
