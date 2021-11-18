@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import axios from "axios";
 import {
   makeStyles,
+  Typography,
+  Grid,
+  Divider,
+  CircularProgress,
 } from '@material-ui/core';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client';
 import moment from 'moment';
@@ -13,7 +17,10 @@ import {
   DateAndTrailerLimitData,
   DayOfTheWeek,
   SiteData,
+  UserModData,
 } from '../../types';
+import SiteStats from './SiteStats';
+import CityNotes from './CityNotes';
 
 const TruckNorris = () => {
 
@@ -23,7 +30,7 @@ const TruckNorris = () => {
   const [holidays, setHolidays] = useState<HolidayData[]>();
   const [calculationData, setCalculationData] = useState<CalculationData[]>();
   const [dateAndTrailerLimits, setDateAndTrailerLimits] = useState<DateAndTrailerLimitData[]>();
-  const [userModifications, setUserModifications] = useState();
+  const [userModifications, setUserModifications] = useState<UserModData[]>();
   const [melbourne, setMelbounre] = useState<SiteData[]>();
   const [sydney, setSydney] = useState<SiteData[]>();
   const [brisbane, setBrisbane] = useState<SiteData[]>();
@@ -47,6 +54,7 @@ const TruckNorris = () => {
   let loadInterval: NodeJS.Timeout;
   let interval: NodeJS.Timeout;
   let interval2: NodeJS.Timeout; 
+  // TEST ==========================
 
   useEffect(() => {
     executeOnce();
@@ -293,6 +301,16 @@ const TruckNorris = () => {
     return limits ? limits[0] : undefined;
   };
 
+  const getUserModificationsForTheSite = (site: SiteID) => {
+    if (userModifications) {
+      let mods = userModifications.filter((usermod) => {
+        return usermod.id.includes(site.toString());
+      });
+      return mods;
+    }
+    return [];
+  };
+
   const getSiteHolidaysForNext4Weeks = (site: SiteID) => {
     // Get the state for the site
     let holidaysOfMonth = [];
@@ -352,8 +370,93 @@ const TruckNorris = () => {
   };
 
   return (
-    <div>
-      TruckNorris Tab
+    <div className={classes.root}>
+      <Typography variant="h4">Truck Norris</Typography>
+      <br />
+      <Divider />
+      <br />
+      <Grid container spacing={8}>
+        <Grid item xs={12} sm={4}>
+          <Typography variant="h5" style={{marginBottom: '15px'}}>
+            Melbourne
+          </Typography>
+          <CityNotes
+            notes={cityNotes.melNotes}
+            city="Melbourne"
+            handleNotesChange={(event) => setCityNotes({
+              ...cityNotes,
+              melNotes: event.target.value
+            })}
+          />
+          <br />
+          <br />
+          {melbourne ? (
+            <SiteStats
+              dateAndTrailerLimits={getLimitsForSite(SITE_MELBOURNE)}
+              siteData={melbourne}
+              userMods={getUserModificationsForTheSite(SITE_MELBOURNE)}
+              executeOnce={loadData}
+              site={SITE_MELBOURNE}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+            />
+          ) : (
+            <CircularProgress className={classes.progress} />
+          )}
+        </Grid>
+        {/* <Grid item xs={12} sm={4}>
+          <Typography variant="h5" style={{marginBottom: '15px'}}>Sydney</Typography>
+          <CityNotes
+            notes={cityNotes.sydNotes}
+            city="Sydney"
+            handleNotesChange={(event) => setCityNotes({
+              ...cityNotes,
+              sydNotes: event.target.value
+            })}
+          />
+          <br />
+          <br />
+          {sydney ? (
+            <SiteStats
+              dateAndTrailerLimits={getLimitsForSite(SITE_SYDNEY)}
+              userMods={getUserModificationsForTheSite(SITE_SYDNEY)}
+              siteData={sydney}
+              executeOnce={loadData}
+              site={SITE_SYDNEY}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+            />
+          ) : (
+            <CircularProgress className={classes.progress} />
+          )}
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Typography variant="h5" style={{marginBottom: '15px'}}>Brisbane</Typography>
+          <CityNotes
+            notes={cityNotes.brisNotes}
+            city="Brisbane"
+            handleNotesChange={(event) => setCityNotes({
+              ...cityNotes,
+              brisNotes: event.target.value
+            })}
+          />
+          <br />
+          <br />
+          {brisbane ? (
+            <SiteStats
+              dateAndTrailerLimits={getLimitsForSite(SITE_BRISBANE)}
+              userMods={getUserModificationsForTheSite(SITE_BRISBANE)}
+              siteData={brisbane}
+              executeOnce={loadData}
+              site={SITE_BRISBANE}
+              userEditingTruckNorrisData={userEditingTruckNorrisData}
+              setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+            />
+          ) : (
+            <CircularProgress className={classes.progress} />
+          )}
+        </Grid> */}
+      </Grid>
     </div>
   )
 };
