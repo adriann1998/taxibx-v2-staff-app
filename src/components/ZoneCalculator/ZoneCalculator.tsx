@@ -22,21 +22,12 @@ import {
 const ZoneCalculator = () => {
 
   const classes = useStyles();
-  const [state, setState] = useState<{
-    postcodes: PostcodeOption[];
-    duration: StorageDuration;
-    deliveryPostcode?: PostcodeData, 
-    redeliveryPostcode?: PostcodeData,
-    firstDeliveryPrice?: number,
-    nextDeliveryPrice?: number,
-  }>({
-    postcodes: [],
-    duration: 0,  // 0 or 3 or 12 months
-    deliveryPostcode: undefined, 
-    redeliveryPostcode: undefined,
-    firstDeliveryPrice: undefined,
-    nextDeliveryPrice: undefined,
-  });
+  const [postcodes, setPostcodes] = useState<PostcodeOption[]>([]);
+  const [duration, setDuration] = useState<StorageDuration>(0);
+  const [deliveryPostcode,setDeliveryPostcode] = useState<PostcodeData>();
+  const [redeliveryPostcode, setRedeliveryPostcode] = useState<PostcodeData>();
+  const [firstDeliveryPrice, setFirstDeliveryPrice] = useState<number>();
+  const [nextDeliveryPrice, setNextDeliveryPrice] = useState<number>();
 
   // Postcodes query
   const { data } = useQuery<GetPostcodesData>(GET_POSTCODES);
@@ -76,26 +67,22 @@ const ZoneCalculator = () => {
           }
         });
       };
-
-      setState({
-        ...state,
-        postcodes: postcodesOptions,
-      });
+      setPostcodes(postcodesOptions);
     }
   }, [data]);
 
   // get price
   let variables;
   if (
-    state.deliveryPostcode &&
-    state.redeliveryPostcode &&
-    state.duration !== undefined
+    deliveryPostcode &&
+    redeliveryPostcode &&
+    duration !== undefined
   ) {
     variables = {
       qty: 1,
-      postcode1: state.deliveryPostcode.postcode,
-      postcode2: state.redeliveryPostcode.postcode,
-      duration: state.duration,
+      postcode1: deliveryPostcode.postcode,
+      postcode2: redeliveryPostcode.postcode,
+      duration: duration,
     }
   }
 
@@ -111,11 +98,8 @@ const ZoneCalculator = () => {
     if (quoteResult.data) {
       const peakPrice = quoteResult.data.quote.redelivery.total - quoteResult.data.quote.redelivery.price[0];
       const redelPrice = quoteResult.data.quote.redelivery.price.map(x => x + peakPrice);
-      setState({
-        ...state,
-        firstDeliveryPrice: redelPrice[0],
-        nextDeliveryPrice: redelPrice[1],
-      })
+      setFirstDeliveryPrice(redelPrice[0]);
+      setNextDeliveryPrice(redelPrice[1]);
     }
   }, [quoteResult]);
 
@@ -132,9 +116,9 @@ const ZoneCalculator = () => {
                 <Select
                   labelId="storage-duration-label"
                   id="storage-duration"
-                  value={state.duration}
+                  value={duration}
                   label="Duration"
-                  onChange={(ev) => setState({...state, duration: ev.target.value as StorageDuration})}
+                  onChange={(ev) => setDuration(ev.target.value as StorageDuration)}
                 >
                   {storageDurationMenuItems.map(item => (
                     <MenuItem value={item.value} key={`storageduration-menu-item-${item.value}`}>{item.label}</MenuItem>
@@ -144,57 +128,57 @@ const ZoneCalculator = () => {
             </Grid>
             <Grid item xs={6}>
               <PostcodeAutocomplete
-                suggestions={state.postcodes}
+                suggestions={postcodes}
                 // selectedPostcode={state.deliveryPostcode}
                 label={"Delivery Postcode/Suburb"}
-                select={(newSelection) => setState({...state, deliveryPostcode: newSelection})}
+                select={(newSelection) => setDeliveryPostcode(newSelection)}
               />
             </Grid>
             <Grid item xs={6}>
               <PostcodeAutocomplete
-                suggestions={state.postcodes}
+                suggestions={postcodes}
                 // selectedPostcode={state.redeliveryPostcode}
                 label={"Re-delivery Postcode/Suburb"}
-                select={(newSelection) => setState({...state, redeliveryPostcode: newSelection})}
+                select={(newSelection) => setRedeliveryPostcode(newSelection)}
               />
             </Grid>
           </Grid>
         </Grid>
         <Grid item xs={6}>
-          {state.deliveryPostcode && (
+          {deliveryPostcode && (
             <Typography className={classes.result}>
-              <b>{state.deliveryPostcode.hint}</b> <br/>
-              Zone: {state.deliveryPostcode ? state.deliveryPostcode.zone : ''}
+              <b>{deliveryPostcode.hint}</b> <br/>
+              Zone: {deliveryPostcode ? deliveryPostcode.zone : ''}
               <Typography className={classes.issues}>
-                {state.deliveryPostcode.issue}
+                {deliveryPostcode.issue}
               </Typography>
               <Typography className={classes.issues}>
-                {state.deliveryPostcode.marginal ? 'Not all suburbs in this postcode is supported' : ''}
+                {deliveryPostcode.marginal ? 'Not all suburbs in this postcode is supported' : ''}
               </Typography>
             </Typography>
           )}
           <br /> <br />
-          {state.redeliveryPostcode && (
+          {redeliveryPostcode && (
             <Typography className={classes.result}>
-              <b>{state.redeliveryPostcode.hint}</b> <br/>
-              Zone: {state.redeliveryPostcode ? state.redeliveryPostcode.zone : ''}
+              <b>{redeliveryPostcode.hint}</b> <br/>
+              Zone: {redeliveryPostcode ? redeliveryPostcode.zone : ''}
               <Typography className={classes.issues}>
-                {state.redeliveryPostcode.issue}
+                {redeliveryPostcode.issue}
               </Typography>
               <Typography className={classes.issues}>
-                {state.redeliveryPostcode.marginal ? 'Not all suburbs in this postcode is supported' : ''}
+                {redeliveryPostcode.marginal ? 'Not all suburbs in this postcode is supported' : ''}
               </Typography>
             </Typography>
           )}
           <Paper style={{marginTop: '20px'}}>
-            {state.firstDeliveryPrice !== undefined && (
+            {firstDeliveryPrice !== undefined && (
               <Typography className={classes.price}>
-                1st: ${state.firstDeliveryPrice}
+                1st: ${firstDeliveryPrice}
               </Typography>
             )}
-            {state.nextDeliveryPrice !== undefined && (
+            {nextDeliveryPrice !== undefined && (
               <Typography className={classes.price}>
-                Thereafter: ${state.nextDeliveryPrice}
+                Thereafter: ${nextDeliveryPrice}
               </Typography>
             )}
           </Paper>

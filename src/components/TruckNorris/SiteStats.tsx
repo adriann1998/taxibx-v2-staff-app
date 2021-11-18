@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import DayStatComponent from './DayStatComponent';
 import moment from 'moment';
 import { 
@@ -25,7 +25,6 @@ const SiteStats = ({
     return modsOfDay;
   }
 
-  //console.log(this.props.siteData);
   const generated = siteData.map((stat, index) => {
     let component = null;
     // Check whether the date is Monday, If so add a gap
@@ -67,7 +66,7 @@ const SiteStats = ({
 }
 
 interface SiteStatsProps {
-  dateAndTrailerLimits: DateAndTrailerLimitData;
+  dateAndTrailerLimits?: DateAndTrailerLimitData;
   siteData: SiteData[];
   userMods: UserModData[];
   executeOnce: () => void;

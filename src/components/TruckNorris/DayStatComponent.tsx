@@ -2105,7 +2105,7 @@ const DayStatComponent = ({
 }
 
 interface DayStatComponentProps {
-  dateAndTrailerLimits: DateAndTrailerLimitData;
+  dateAndTrailerLimits?: DateAndTrailerLimitData;
   day: SiteData;
   site: SiteID;
   executeOnce: () => void;
@@ -2393,7 +2393,7 @@ const axiosInstance = axios.create({
   },
 });
 
-const GRID_SPACING = 3;
+const GRID_SPACING = 1;
 
 
 export default DayStatComponent;

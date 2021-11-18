@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState } from "react";
 import { TextField, IconButton, makeStyles } from "@material-ui/core";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import EditIcon from "@material-ui/icons/Edit";
@@ -9,38 +9,19 @@ import { City } from '../../types';
 const CityNotes = ({
   notes,
   city,
+  handleNotesChange,
 }: CityNotesProps) => {
 
   const classes = useStyles();
-  const [state, setState] = useState<{
-    notes: string;
-    editMode: boolean;
-    loading: boolean;
-  }>({
-    notes: notes,
-    editMode: false,
-    loading: false,
-  });
-
-  useEffect(() => {
-    console.log(state);
-    if (!state.editMode) {
-      setState({
-        ...state,
-        notes: notes,
-      });
-    }
-  }, [state.editMode]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
 
   const triggerMode = () => {
-    setState({
-      ...state,
-      editMode: !state.editMode,
-    });
+    setEditMode(!editMode);
   }
 
   const onButtonTriggered = () => {
-    if (state.editMode) {
+    if (editMode) {
       // if editMode is true, then the button clicked is the "SAVE" button
       saveNotes();
     } else {
@@ -51,16 +32,13 @@ const CityNotes = ({
 
   const saveNotes = () => {
     // set loading to true and set edit mode to false
-    setState({
-      ...state,
-      loading: true,
-    });
+    setLoading(true);
     triggerMode();
 
     // PUT the updated data to DynamoDB through AWS Gateway
     const vars = {
       city: city,
-      notes: state.notes,
+      notes: notes,
     };
     const httpOptions = {
       method: "PUT",
@@ -73,45 +51,29 @@ const CityNotes = ({
       .then((data) => data.json())
       .then((data) => {
         // set loading to false by entering
-        setState({
-          ...state,
-          loading: false,
-        });
+        setLoading(false);
       })
       .catch((err) => {
         console.log(err);
         // set loading to false
-        setState({
-          ...state,
-          loading: false,
-        });
-        // set notes back to its original value
-        setState({
-          ...state,
-          notes: notes,
-        });
+        setLoading(false);
         alert("Notes update failed");
       });
   }
 
   return (
     <div style={{ height: "130px" }}>
-      {state.loading ? (
+      {loading ? (
         <CircularProgress className={classes.progress} />
       ) : (
         <TextField
-          variant={state.editMode ? "outlined" : "filled"}
+          variant={editMode ? "outlined" : "filled"}
           fullWidth
           multiline
           rows={5}
-          disabled={!state.editMode}
-          value={state.notes}
-          onChange={(ev) => {
-            setState({
-              ...state,
-              notes: ev.target.value,
-            });
-          }}
+          disabled={!editMode}
+          value={notes}
+          onChange={handleNotesChange}
           style={{
             backgroundColor: "#F4A460",
           }}
@@ -124,7 +86,7 @@ const CityNotes = ({
                 style={{ bottom: 3, right: 3 }}
                 onClick={onButtonTriggered}
               >
-                {state.editMode ? <SaveIcon /> : <EditIcon />}
+                {editMode ? <SaveIcon /> : <EditIcon />}
               </IconButton>
             ),
           }}
@@ -137,6 +99,7 @@ const CityNotes = ({
 interface CityNotesProps {
   notes: string;
   city: City;
+  handleNotesChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const useStyles = makeStyles(theme => ({
