@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import axios from "axios";
 import {
   makeStyles,
@@ -44,17 +44,24 @@ const TruckNorris = () => {
     brisNotes: "",
   });
 
-  // TEST ==========================
+  // // TEST ==========================
   useEffect(() => {
     console.log(melbourne);
-    console.log(sydney);
-    console.log(brisbane);
-  }, [melbourne, sydney, brisbane])
+    // console.log(sydney);
+    // console.log(brisbane);
+  }, [melbourne])
+
+  // useEffect(() => {
+  //   console.log(holidays);
+  //   console.log(calculationData);
+  //   console.log(dateAndTrailerLimits);
+  //   console.log(userModifications);
+  // }, [holidays, calculationData, dateAndTrailerLimits, userModifications])
+  // // TEST =======================
 
   let loadInterval: NodeJS.Timeout;
   let interval: NodeJS.Timeout;
   let interval2: NodeJS.Timeout; 
-  // TEST ==========================
 
   useEffect(() => {
     executeOnce();
@@ -82,6 +89,17 @@ const TruckNorris = () => {
       }, 45 * 1000);
     }
   }, []);
+
+  useEffect(() => {
+    if (
+      holidays && 
+      calculationData && 
+      dateAndTrailerLimits &&
+      userModifications
+    ) {
+      prepareData();
+    };
+  }, [holidays, calculationData, dateAndTrailerLimits, userModifications]);
 
   useEffect(() => {
     // Clear intervals on unmount
@@ -216,7 +234,28 @@ const TruckNorris = () => {
     // Loop through each day and assign values
     if (remainingDays.length) {
       for (let day of remainingDays) {
-        let dateObject: any = {};
+        let dateObject: any = {
+          date: "",
+          dateBroken: [],
+          holiday: false,
+          data: {
+            am: 0,
+            anytime: 0,
+            customers: [],
+            delivery: 0,
+            dfCount: 0,
+            pickup: 0,
+            pm: 0,
+            sdp: 0,
+            trailers: 0,
+            wos: 0,
+            zone3: [],
+            zone4: [],
+            customMessage: "",
+            holiday: false,
+          },
+          limits: [],
+        };
         dateObject.date = day;
         dateObject.dateBroken = [
           moment(day).format("dddd").substring(0, 3),
@@ -249,7 +288,7 @@ const TruckNorris = () => {
             .substring(0, 3);
           dateObject.limits = getLimitsForTheDay({
             siteLimits,
-            dayName: dayName as DayOfTheWeek
+            dayName: dayName.toLocaleLowerCase() as DayOfTheWeek
           });
         }
         preparedData.push(dateObject);
@@ -404,7 +443,7 @@ const TruckNorris = () => {
             <CircularProgress className={classes.progress} />
           )}
         </Grid>
-        {/* <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={4}>
           <Typography variant="h5" style={{marginBottom: '15px'}}>Sydney</Typography>
           <CityNotes
             notes={cityNotes.sydNotes}
@@ -455,7 +494,7 @@ const TruckNorris = () => {
           ) : (
             <CircularProgress className={classes.progress} />
           )}
-        </Grid> */}
+        </Grid>
       </Grid>
     </div>
   )

@@ -22,41 +22,45 @@ const SiteStats = ({
     let modsOfDay = userMods.filter(mod => {
       return mod.id.includes(date);
     });
-    return modsOfDay;
-  }
+    return modsOfDay[0];
+  };
   
   return (
     <div>
       {
-      siteData.map((stat, index) => {
-        // Check whether the date is Saturday, If so add a gap
-        return moment(stat.date).day() === 6 ? (
-          <div key={index + stat.date} >
+        siteData.map((stat, index) => {
+          // Check whether the date is Saturday, If so add a gap
+          if (!stat.limits.length) {
+            return null;
+          }
+          return moment(stat.date).day() === 6 ? (
+            <div key={index + stat.date} >
+              <DayStatComponent
+                dateAndTrailerLimits={dateAndTrailerLimits}
+                day={stat}
+                site={site}
+                executeOnce={executeOnce}
+                userMods={getUserModsForTheDate(stat.date)}
+                userEditingTruckNorrisData={userEditingTruckNorrisData}
+                setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
+              />
+              <br />
+              <br />
+            </div>
+          ) : (
             <DayStatComponent
               dateAndTrailerLimits={dateAndTrailerLimits}
               day={stat}
-              site={site}
+              site={site} 
               executeOnce={executeOnce}
               userMods={getUserModsForTheDate(stat.date)}
               userEditingTruckNorrisData={userEditingTruckNorrisData}
               setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
             />
-            <br />
-            <br />
-          </div>
-        ) : (
-          <DayStatComponent
-            dateAndTrailerLimits={dateAndTrailerLimits}
-            day={stat}
-            site={site} 
-            executeOnce={executeOnce}
-            userMods={getUserModsForTheDate(stat.date)}
-            userEditingTruckNorrisData={userEditingTruckNorrisData}
-            setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
-          />
-        );
+          );
 
-      })}
+        })
+      }
     </div>
   )
 }

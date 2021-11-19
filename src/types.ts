@@ -20,14 +20,14 @@ export interface UserModData {
     upper: string;
     user: string;
   }[];
-  message: {
+  message?: {
     did: string;
     ip: string;
     message: string;
     time: string;
     user: string;
   }[];
-  values: {
+  values?: {
     am: number;
     del: number;
     did: string;
@@ -39,7 +39,16 @@ export interface UserModData {
     ttl: number;
     user: string;
   }[];
-  holiday: Holiday[];
+  holiday: {
+    holiday: any;
+    holidayDescription: string;
+  }[];
+  infoMsg: {
+    user: string;
+    did: string;
+    message: string;
+    time: string
+  }[]
 };
 
 export interface CalculationData {
@@ -116,11 +125,13 @@ export interface HolidayData {
 };
 
 export interface DateAndTrailerLimitData {
-  deliveries: {[key in DayOfTheWeek]: MinMaxObject}[];
+  deliveries: DateLimit;
   locatiom: City,
   trailers: number;
   id: number;
 };
+
+export type DateLimit = Record<DayOfTheWeek, MinMaxObject>[];
 
 export type DayOfTheWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
