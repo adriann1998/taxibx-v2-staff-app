@@ -4,8 +4,8 @@ import {
   Grid,
   CircularProgress,
   Tooltip,
-  FormControl,
-  FormGroup,
+  // FormControl,
+  // FormGroup,
   FormControlLabel,
   Checkbox,
   TextField,
@@ -58,12 +58,25 @@ export default function DayStatComponent({
   //@ts-ignore
   const ip: string = authContext._user.profile.ipaddr;
 
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [holidayDescription, setHolidayDescription] = useState<string>("");
+  const [holiday, setHoliday] = useState<boolean>(false);
+  const [changing, setChanging] = useState<{
+    holiday: boolean;
+    message: boolean;
+    limits: boolean;
+    moveValues: boolean;
+    infoMessage: boolean;
+  }>({
+    holiday: false,
+    message: false,
+    limits: false,
+    moveValues: false,
+    infoMessage: false,
+  });
   const [state, setState] = useState<{
     arrowRef: any | null;
-    openDialog: boolean;
     editComponent: string;
-    holiday: boolean;
-    holidayDescription: string;
     movesMessage: string;
     lowerLimit: number;
     upperLimit: number;
@@ -73,22 +86,14 @@ export default function DayStatComponent({
     am: number;
     pm: number;
     trl: number;
-    changingHoliday: boolean;
-    changingMessage: boolean;
-    changingLimits: boolean;
-    changingMoveValues: boolean;
     deletingMoveValues: boolean;
     open: boolean;
     infoMessageForDay: string;
-    changingInfoMessage: boolean;
     showDFWarning: boolean;
     snackbarMessage: string;
   }>({
     arrowRef: null,
-    openDialog: false,
     editComponent: "",
-    holiday: false,
-    holidayDescription: "",
     movesMessage: "",
     lowerLimit: 0,
     upperLimit: 0,
@@ -98,14 +103,9 @@ export default function DayStatComponent({
     am: 0,
     pm: 0,
     trl: 0,
-    changingHoliday: false,
-    changingMessage: false,
-    changingLimits: false,
-    changingMoveValues: false,
     deletingMoveValues: false,
     open: false,
     infoMessageForDay: "",
-    changingInfoMessage: false,
     showDFWarning: false,
     snackbarMessage: "",
   });
@@ -133,27 +133,19 @@ export default function DayStatComponent({
       userMods.holiday.length &&
       userMods.holiday[0].holiday
     ) {
-      setState({
-        ...state,
-        holiday: true,
-        holidayDescription: userMods.holiday[0].holidayDescription,
-      });
+      setHoliday(true);
+      setHolidayDescription(userMods.holiday[0].holidayDescription);
     } else if (
       userMods &&
       userMods.holiday &&
       userMods.holiday.length &&
       !userMods.holiday[0].holiday
     ) {
-      setState({ 
-        ...state,
-        holiday: false, holidayDescription: "",
-      });
+      setHoliday(false);
+      setHolidayDescription("");
     } else if (day.holiday && typeof day.holiday !== 'boolean' && day.holiday.description) {
-      setState({
-        ...state,
-        holiday: true,
-        holidayDescription: day.holiday.description,
-      });
+      setHoliday(true);
+      setHolidayDescription(day.holiday.description);
     }
 
     // Set message
@@ -179,8 +171,8 @@ export default function DayStatComponent({
     } else if (day.limits && day.limits.length) {
       setState({
         ...state,
-        // upperLimit: day.limits[0][day.dateBroken[0].toLowerCase()].max,
-        // lowerLimit: day.limits[0][day.dateBroken[0].toLowerCase()].min,
+        upperLimit: day.limits[0][day.dateBroken[0].toLowerCase()].max,
+        lowerLimit: day.limits[0][day.dateBroken[0].toLowerCase()].min,
       });
     }
 
@@ -189,45 +181,39 @@ export default function DayStatComponent({
   const hideAdjustmentDialog = () => {
     setState({
       ...state,
-      openDialog: false,
       editComponent: "",
     });
+    setOpenDialog(false);
     setUserEditingTruckNorrisData(false);
   };
 
   const showAdjustmentDialog = (component: "date" | "moves" | "limits" | "del") => {
     setUserEditingTruckNorrisData(true);
-    //if (!this.isDayClosed()) {
     setState({ 
       ...state,
-      openDialog: true,
       editComponent: component,
     });
-    //}
+    setOpenDialog(true);
   };
 
   const handleHolidayChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    event.target.checked
-      ? setState({ 
-        ...state,
-        holiday: event.target.checked,
-      })
-      : setState({
-          ...state,
-          holiday: event.target.checked,
-          holidayDescription: "",
-        });
+    if (event.target.checked) {
+      setHoliday(event.target.checked);
+    } else {
+      setHoliday(event.target.checked);
+      setHolidayDescription("");
+    };
   };
 
   const handleHolidayChangeClick = () => {
     const data = {
       type: "holiday",
-      holiday: state.holiday,
-      holidayDescription: state.holidayDescription,
+      holiday: holiday,
+      holidayDescription: holidayDescription,
     };
-    setState({ 
-      ...state,
-      changingHoliday: true,
+    setChanging({ 
+      ...changing,
+      holiday: true,
     });
     sendDataToApi(data);
   };
@@ -240,9 +226,9 @@ export default function DayStatComponent({
   };
 
   const handleMovesMessageChangeClick = () => {
-    setState({ 
-      ...state,
-      changingMessage: true,
+    setChanging({ 
+      ...changing,
+      message: true,
     });
     const data = {
       type: "message",
@@ -263,9 +249,9 @@ export default function DayStatComponent({
       upper: state.upperLimit,
       lower: state.lowerLimit,
     };
-    setState({ 
-      ...state,
-      changingLimits: true,
+    setChanging({
+      ...changing,
+      limits: true,
     });
     sendDataToApi(data);
   };
@@ -277,9 +263,12 @@ export default function DayStatComponent({
     };
     setState({ 
       ...state,
-      changingHoliday: true, 
       infoMessageForDay: "",
     });
+    setChanging({
+      ...changing,
+      holiday: true,
+    })
     sendDataToApi(data);
   };
 
@@ -331,7 +320,6 @@ export default function DayStatComponent({
     };
     setState({
       ...state,
-      changingMoveValues: true,
       ttl: 10,
       del: 0,
       rtn: 0,
@@ -339,6 +327,10 @@ export default function DayStatComponent({
       pm: 0,
       trl: 0,
     });
+    setChanging({
+      ...changing,
+      moveValues: true,
+    })
     sendDataToApi(data);
   };
 
@@ -373,13 +365,16 @@ export default function DayStatComponent({
         data = null;
         setState({
           ...state,
-          changingHoliday: false,
-          changingMessage: false,
-          changingLimits: false,
-          changingMoveValues: false,
-          changingInfoMessage: false,
           snackbarMessage: "Data saved successfully!",
         });
+        setChanging({
+          ...changing,
+          holiday: false,
+          message: false,
+          limits: false,
+          moveValues: false,
+          infoMessage: false,
+        })
         setUserEditingTruckNorrisData(false);
         hideAdjustmentDialog();
         // show success message
@@ -394,8 +389,8 @@ export default function DayStatComponent({
 
   const isDayClosed = () => {
     return (
-      state.holiday ||
-      state.holidayDescription !== ""
+      holiday ||
+      holidayDescription !== ""
     );
   };
 
@@ -470,9 +465,9 @@ export default function DayStatComponent({
   };
 
   const handleInfoMessageDeleteClick = (id: string) => {
-    setState({ 
-      ...state,
-      changingHoliday: true,
+    setChanging({ 
+      ...changing,
+      holiday: true,
     });
     setUserEditingTruckNorrisData(true);
     //this.setState({ deletingMoveValues: true });
@@ -492,10 +487,10 @@ export default function DayStatComponent({
           snackbarMessage: "Info message deleted successfully!",
         });
         setUserEditingTruckNorrisData(false);
-        setState({
-          ...state,
-          changingHoliday: false,
-        });
+        setChanging({
+          ...changing,
+          holiday: false,
+        })
         hideAdjustmentDialog();
         // show success message
         handleOpenSnack();
@@ -543,177 +538,32 @@ export default function DayStatComponent({
   /**
    * COMPONENTS ====================
    */
-  const DateComponent = () => {
-    let currentUserMessages;
-    // if there are modifications that the current user has added, show them and allow to delete
-    if (
-      userMods &&
-      userMods.infoMsg &&
-      userMods.infoMsg.length
-    ) {
-      currentUserMessages = userMods.infoMsg.map((msg) => {
-        if (msg.user === user) {
-          return (
-            <Grid container spacing={8} key={msg.did}>
-              <Grid item xs={11} sm={11} className={classes.userEntryText}>
-                {msg.message}
-                <div className={classes.timeStampOfMsg}>
-                  Added on {moment(msg.time).format("DD/MM/YYYY hh:mm:ss A")}
-                </div>
-              </Grid>
-              <Grid item xs={1} sm={1}>
-                <a onClick={() => handleInfoMessageDeleteClick(msg.did)}>
-                  <DeleteIcon
-                    className={classes.leftIcon}
-                  />
-                </a>
-              </Grid>
-            </Grid>
-          );
-        }
-      });
-    }
-
-    return (
-      <div>
-        <FormControl component="fieldset" className={classes.formControl}>
-          {state.changingHoliday ? (
-            <CircularProgress className={classes.progress} />
-          ) : (
-            <FormGroup>
-              <h3>Closures</h3>
-              <Grid container spacing={GRID_SPACING}>
-                <Grid item xs={3} sm={3}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={state.holiday}
-                        onChange={handleHolidayChange}
-                        value="holiday"
-                      />
-                    }
-                    label="Closed"
-                  />
-                </Grid>
-                <Grid item xs={7} sm={7}>
-                  <TextField
-                    id="hoildayDescription"
-                    label="Closed Description"
-                    variant="outlined"
-                    multiline={true}
-                    className={classes.textField}
-                    value={state.holidayDescription}
-                    onChange={(event) => {
-                      setState({
-                        ...state,
-                        infoMessageForDay: event.target.value,
-                      });
-                    }}
-                    rows={1}
-                    rowsMax={10}
-                    margin="normal"
-                  />
-                </Grid>
-                <Grid item xs={2} sm={2}>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
-                    className={classes.holidaySaveBtn}
-                    disabled={state.changingHoliday}
-                    onClick={handleHolidayChangeClick}
-                  >
-                    <SaveIcon
-                      className={classNames(
-                        classes.leftIcon,
-                        classes.iconSmall
-                      )}
-                    />
-                    Save
-                  </Button>
-                </Grid>
-              </Grid>
-
-              <h3>Messages for the day</h3>
-              <Grid container spacing={GRID_SPACING}>
-                <Grid item xs={10} sm={10}>
-                  <TextField
-                    id="infoMessage"
-                    label="Info Message"
-                    className={classes.textField2}
-                    value={state.infoMessageForDay}
-                    variant="outlined"
-                    multiline={true}
-                    onChange={(event) => {
-                      setState({
-                        ...state,
-                        infoMessageForDay: event.target.value,
-                      });
-                    }}
-                    rows={2}
-                    disabled={false}
-                    rowsMax={10}
-                    margin="normal"
-                  />
-                </Grid>
-                <Grid item xs={2} sm={2}>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
-                    className={classes.holidaySaveBtn}
-                    onClick={handleInfoMessageClick}
-                  >
-                    <SaveIcon
-                      className={classNames(
-                        classes.leftIcon,
-                        classes.iconSmall
-                      )}
-                    />
-                    Save
-                  </Button>
-                </Grid>
-              </Grid>
-              <div className={classes.yourEntriesTitle}>
-                Your entries for the day
-              </div>
-              <div className={classes.yourEntriesContent}>
-                {currentUserMessages}
-              </div>
-            </FormGroup>
-          )}
-        </FormControl>
-      </div>
-    );
-  };
 
   const DelComponent = () => {
-    return state.changingMoveValues ? (
+    return changing.moveValues ? (
       <CircularProgress className={classes.progress} />
     ) : (
       <div>
         <br />
-        <Grid container spacing={8} className={classes.adjustmentControls}>
+        <Grid container spacing={2} className={classes.adjustmentControls}>
           <Grid item xs={12} sm={12}>
             <Grid container spacing={0}>
               <Grid item xs={4} sm={4}>
                 <div className={classes.delText}>DEL</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <FormControl>
-                  <Input
-                    type="number"
-                    id="del"
-                    onChange={(event) =>
-                      handleMoveValueChanges(event, "del")
-                    }
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    }
-                  />
-                </FormControl>
+                <Input
+                  type="number"
+                  id="del"
+                  onChange={(event) =>
+                    handleMoveValueChanges(event, "del")
+                  }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IncreaseDecreaseIcon />
+                    </InputAdornment>
+                  }
+                />
               </Grid>
             </Grid>
           </Grid>
@@ -723,20 +573,18 @@ export default function DayStatComponent({
                 <div className={classes.delText}>RTN</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <FormControl>
-                  <Input
-                    type="number"
-                    id="rtn"
-                    onChange={(event) =>
-                      handleMoveValueChanges(event, "rtn")
-                    }
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    }
-                  />
-                </FormControl>
+                <Input
+                  type="number"
+                  id="rtn"
+                  onChange={(event) =>
+                    handleMoveValueChanges(event, "rtn")
+                  }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IncreaseDecreaseIcon />
+                    </InputAdornment>
+                  }
+                />
               </Grid>
             </Grid>
           </Grid>
@@ -758,20 +606,18 @@ export default function DayStatComponent({
                 <div className={classes.delText}>AM</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <FormControl>
-                  <Input
-                    type="number"
-                    id="am"
-                    onChange={(event) =>
-                      handleMoveValueChanges(event, "am")
-                    }
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    }
-                  />
-                </FormControl>
+                <Input
+                  type="number"
+                  id="am"
+                  onChange={(event) =>
+                    handleMoveValueChanges(event, "am")
+                  }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IncreaseDecreaseIcon />
+                    </InputAdornment>
+                  }
+                />
               </Grid>
             </Grid>
           </Grid>
@@ -781,20 +627,18 @@ export default function DayStatComponent({
                 <div className={classes.delText}>PM</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <FormControl>
-                  <Input
-                    type="number"
-                    id="pm"
-                    onChange={(event) =>
-                      handleMoveValueChanges(event, "pm")
-                    }
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    }
-                  />
-                </FormControl>
+                <Input
+                  type="number"
+                  id="pm"
+                  onChange={(event) =>
+                    handleMoveValueChanges(event, "pm")
+                  }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IncreaseDecreaseIcon />
+                    </InputAdornment>
+                  }
+                />
               </Grid>
             </Grid>
           </Grid>
@@ -817,55 +661,51 @@ export default function DayStatComponent({
                 <div className={classes.delText}>TRL</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <FormControl>
-                  <Input
-                    type="number"
-                    id="tlr"
-                    onChange={(event) =>
-                      handleMoveValueChanges(event, "trl")
-                    }
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    }
-                  />
-                </FormControl>
+                <Input
+                  type="number"
+                  id="tlr"
+                  onChange={(event) =>
+                    handleMoveValueChanges(event, "trl")
+                  }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IncreaseDecreaseIcon />
+                    </InputAdornment>
+                  }
+                />
               </Grid>
             </Grid>
           </Grid>
         </Grid>
         <Grid container spacing={GRID_SPACING}>
           <Grid item xs={6} sm={6}>
-            <FormControl className={classes.formControl}>
-              <div>
-                <InputLabel htmlFor="timeToLive">Lock Time</InputLabel>
-                <Select
-                  native
-                  value={state.ttl}
-                  onChange={(event) => {
-                    setState({ 
-                      ...state,
-                      ttl: parseInt(event.target.value as string),
-                    })
-                  }}
-                  inputProps={{
-                    name: "age",
-                    id: "timeToLive",
-                  }}
-                >
-                  <option value="" />
-                  <option value={10}>10 Mins</option>
-                  <option value={20}>20 Mins</option>
-                  <option value={30}>30 Mins</option>
-                  <option value={60}>1 Hour</option>
-                  <option value={120}>2 Hours</option>
-                  <option value={360}>6 Hours</option>
-                  <option value={720}>12 Hours</option>
-                  <option value={1440}>24 Hours</option>
-                </Select>
-              </div>
-            </FormControl>
+            <div>
+              <InputLabel htmlFor="timeToLive">Lock Time</InputLabel>
+              <Select
+                native
+                value={state.ttl}
+                onChange={(event) => {
+                  setState({ 
+                    ...state,
+                    ttl: parseInt(event.target.value as string),
+                  })
+                }}
+                inputProps={{
+                  name: "age",
+                  id: "timeToLive",
+                }}
+              >
+                <option value="" />
+                <option value={10}>10 Mins</option>
+                <option value={20}>20 Mins</option>
+                <option value={30}>30 Mins</option>
+                <option value={60}>1 Hour</option>
+                <option value={120}>2 Hours</option>
+                <option value={360}>6 Hours</option>
+                <option value={720}>12 Hours</option>
+                <option value={1440}>24 Hours</option>
+              </Select>
+            </div>
           </Grid>
           <Grid item xs={2} sm={2}>
             <Button
@@ -891,123 +731,6 @@ export default function DayStatComponent({
           <Grid item xs={2} sm={2}></Grid>
         </Grid>
       </div>
-    );
-  };
-
-  const MovesComponent = () => {
-    return (
-      <FormControl component="fieldset" className={classes.formControl}>
-        {state.changingMessage ? (
-          <CircularProgress className={classes.progress} />
-        ) : (
-          <FormGroup>
-            <Grid container spacing={GRID_SPACING}>
-              <Grid item xs={10} sm={10}>
-                <TextField
-                  id="movesMessage"
-                  label="Message"
-                  className={classes.textField}
-                  value={
-                    state.movesMessage !== "N/A"
-                      ? state.movesMessage
-                      : ""
-                  }
-                  onChange={handleMovesMessageChange}
-                  margin="normal"
-                  inputProps={{ maxLength: 15 }}
-                />
-                <Typography variant="caption">15 Characters Max</Typography>
-              </Grid>
-              <Grid item xs={2} sm={2}>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  size="small"
-                  className={classes.holidaySaveBtn}
-                  onClick={handleMovesMessageChangeClick}
-                >
-                  <SaveIcon
-                    className={classNames(classes.leftIcon, classes.iconSmall)}
-                  />
-                  Save
-                </Button>
-              </Grid>
-            </Grid>
-            <Grid
-              container
-              style={{ paddingTop: 20, textAlign: "justify" }}
-              spacing={GRID_SPACING}
-            >
-              <Grid item xs={12} sm={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Reservations
-                </Typography>
-                <hr />
-
-                {state.deletingMoveValues ? (
-                  <CircularProgress className={classes.progress} />
-                ) : (
-                  getReservations()
-                )}
-              </Grid>
-            </Grid>
-          </FormGroup>
-        )}
-      </FormControl>
-    );
-  };
-
-  const UpperLowerLimitsComponent = () => {
-    return (
-      <FormControl component="fieldset" className={classes.formControl}>
-        {state.changingLimits ? (
-          <CircularProgress className={classes.progress} />
-        ) : (
-          <div>
-            <FormGroup>
-              <Grid container spacing={GRID_SPACING}>
-                <Grid item xs={5} sm={5}>
-                  <TextField
-                    id="lowerLimit"
-                    label="Lower Limit"
-                    className={classes.textField}
-                    value={state.lowerLimit}
-                    onChange={handleLimitChange}
-                    margin="normal"
-                  />
-                </Grid>
-                <Grid item xs={5} sm={5}>
-                  <TextField
-                    id="upperLimit"
-                    label="Upper Limit"
-                    className={classes.textField}
-                    value={state.upperLimit}
-                    onChange={handleLimitChange}
-                    margin="normal"
-                  />
-                </Grid>
-                <Grid item xs={2} sm={2}>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
-                    className={classes.holidaySaveBtn}
-                    onClick={handleLimitsChangeClick}
-                  >
-                    <SaveIcon
-                      className={classNames(
-                        classes.leftIcon,
-                        classes.iconSmall
-                      )}
-                    />
-                    Save
-                  </Button>
-                </Grid>
-              </Grid>
-            </FormGroup>
-          </div>
-        )}
-      </FormControl>
     );
   };
 
@@ -1093,6 +816,35 @@ export default function DayStatComponent({
     return modsComponent;
   };
 
+  const SnackBarNotification = () => {
+    return state.snackbarMessage && 
+      state.snackbarMessage !== "" ? (
+        <Snackbar
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          open={state.open}
+          autoHideDuration={6000}
+          ContentProps={{
+            "aria-describedby": "message-id",
+          }}
+          message={<span id="message-id">{state.snackbarMessage}</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              className={classes.close}
+              onClick={handleSnackClose}
+            >
+              <CloseIcon />
+            </IconButton>,
+          ]}
+        />
+      ) : null;
+  };
+
   /**
    * Checks whether there are locked reservations for the logged in user
    */
@@ -1129,8 +881,8 @@ export default function DayStatComponent({
    const getInfoMessage = () => {
     let message = "";
     //console.log(this.state.holiday);
-    if (state.holiday) {
-      message = state.holidayDescription;
+    if (holiday) {
+      message = holidayDescription;
     } else if (
       day.data &&
       day.data.customMessage &&
@@ -1558,23 +1310,21 @@ export default function DayStatComponent({
               </Grid>
 
               <Grid item xs={12} sm={12}>
-                <div>
-                  <span className={classes.date}>
-                    {calculateMoves()}
-                  </span>{" "}
-                  <br />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color:
-                        getBackgroundColor() !== "#ffffff"
-                          ? "white"
-                          : "#595959",
-                    }}
-                  >
-                    Moves
-                  </span>
-                </div>
+                <span className={classes.date}>
+                  {calculateMoves()}
+                </span>{" "}
+                <br />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color:
+                      getBackgroundColor() !== "#ffffff"
+                        ? "white"
+                        : "#595959",
+                  }}
+                >
+                  Moves
+                </span>
               </Grid>
             </Grid>
           </Grid>
@@ -2167,7 +1917,7 @@ export default function DayStatComponent({
                   )}
 
                   <Grid item xs={2} sm={2}>
-                    {(!state.openDialog ||
+                    {(!openDialog ||
                       state.editComponent !== "del") &&
                     !isDayClosed() &&
                     day.dateBroken[0].toLowerCase() !== "sun" ? (
@@ -2191,22 +1941,253 @@ export default function DayStatComponent({
           //: <span style={{ margin: 'auto', color: 'white', fontSize: 22 }}>{this.getInfoMessage()}</span>
           ""
         )}
-        {state.openDialog ? (
+        {openDialog ? (
           <Grid item xs={12} sm={12} className={classes.adjustmentContainer}>
-            <Grid container spacing={8}>
+            <Grid container spacing={2}>
               <Grid item xs={11} sm={11}>
                 {state.editComponent === "del"
                   ? <DelComponent />
                   : null}
                 {state.editComponent === "date"
-                  ? <DateComponent />
-                  : null}
+                  ? (
+                    <>
+                      {changing.holiday ? (
+                        <CircularProgress className={classes.progress} />
+                      ) : (
+                        <>
+                          <h3>Closures</h3>
+                          <Grid container spacing={GRID_SPACING}>
+                            <Grid item xs={3} sm={3}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={holiday}
+                                    onChange={handleHolidayChange}
+                                    value="holiday"
+                                  />
+                                }
+                                label="Closed"
+                              />
+                            </Grid>
+                            <Grid item xs={7} sm={7}>
+                              <TextField
+                                id="hoildayDescription"
+                                label="Closed Description"
+                                variant="outlined"
+                                multiline={true}
+                                className={classes.textField}
+                                value={holidayDescription}
+                                onChange={(event) => {
+                                  setHolidayDescription(event.target.value);
+                                }}
+                                rows={1}
+                                rowsMax={10}
+                                margin="normal"
+                              />
+                            </Grid>
+                            <Grid item xs={2} sm={2}>
+                              <Button
+                                variant="contained"
+                                color="secondary"
+                                size="small"
+                                className={classes.holidaySaveBtn}
+                                disabled={changing.holiday}
+                                onClick={handleHolidayChangeClick}
+                              >
+                                <SaveIcon
+                                  className={classNames(
+                                    classes.leftIcon,
+                                    classes.iconSmall
+                                  )}
+                                />
+                                Save
+                              </Button>
+                            </Grid>
+                          </Grid>
+
+                          <h3>Messages for the day</h3>
+                          <Grid container spacing={GRID_SPACING}>
+                            <Grid item xs={10} sm={10}>
+                              <TextField
+                                id="infoMessage"
+                                label="Info Message"
+                                className={classes.textField2}
+                                value={state.infoMessageForDay}
+                                variant="outlined"
+                                multiline={true}
+                                onChange={(event) => {
+                                  setState({
+                                    ...state,
+                                    infoMessageForDay: event.target.value,
+                                  });
+                                }}
+                                rows={2}
+                                disabled={false}
+                                rowsMax={10}
+                                margin="normal"
+                              />
+                            </Grid>
+                            <Grid item xs={2} sm={2}>
+                              <Button
+                                variant="contained"
+                                color="secondary"
+                                size="small"
+                                className={classes.holidaySaveBtn}
+                                onClick={handleInfoMessageClick}
+                              >
+                                <SaveIcon
+                                  className={classNames(
+                                    classes.leftIcon,
+                                    classes.iconSmall
+                                  )}
+                                />
+                                Save
+                              </Button>
+                            </Grid>
+                          </Grid>
+                          <div className={classes.yourEntriesTitle}>
+                            Your entries for the day
+                          </div>
+                          <div className={classes.yourEntriesContent}>
+                            { userMods && userMods.infoMsg && userMods.infoMsg.length ? (
+                                userMods.infoMsg.map((msg) => {
+                                  if (msg.user === user) {
+                                    return (
+                                      <Grid container spacing={2} key={msg.did}>
+                                        <Grid item xs={11} sm={11} className={classes.userEntryText}>
+                                          {msg.message}
+                                          <div className={classes.timeStampOfMsg}>
+                                            Added on {moment(msg.time).format("DD/MM/YYYY hh:mm:ss A")}
+                                          </div>
+                                        </Grid>
+                                        <Grid item xs={1} sm={1}>
+                                          <a onClick={() => handleInfoMessageDeleteClick(msg.did)}>
+                                            <DeleteIcon
+                                              className={classes.leftIcon}
+                                            />
+                                          </a>
+                                        </Grid>
+                                      </Grid>
+                                    );
+                                  }
+                                })
+                              ) : null
+                            }
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : null}
                 {state.editComponent === "moves"
-                  ? <MovesComponent />
+                  ? (
+                    <>
+                      {changing.message ? (
+                        <CircularProgress className={classes.progress} />
+                      ) : (
+                        <>
+                          <Grid container spacing={GRID_SPACING}>
+                            <Grid item xs={10} sm={10}>
+                              <TextField
+                                id="movesMessage"
+                                label="Message"
+                                className={classes.textField}
+                                value={state.movesMessage}
+                                onChange={handleMovesMessageChange}
+                                margin="normal"
+                                inputProps={{ maxLength: 15 }}
+                                helperText={"15 Characters Max"}
+                              />
+                            </Grid>
+                            <Grid item xs={2} sm={2}>
+                              <Button
+                                variant="contained"
+                                color="secondary"
+                                size="small"
+                                className={classes.holidaySaveBtn}
+                                onClick={handleMovesMessageChangeClick}
+                              >
+                                <SaveIcon
+                                  className={classNames(classes.leftIcon, classes.iconSmall)}
+                                />
+                                Save
+                              </Button>
+                            </Grid>
+                          </Grid>
+                          <Grid
+                            container
+                            style={{ paddingTop: 20, textAlign: "justify" }}
+                            spacing={GRID_SPACING}
+                          >
+                            <Grid item xs={12} sm={12}>
+                              <Typography variant="subtitle1" gutterBottom>
+                                Reservations
+                              </Typography>
+                              <hr />
+
+                              {state.deletingMoveValues ? (
+                                <CircularProgress className={classes.progress} />
+                              ) : (
+                                getReservations()
+                              )}
+                            </Grid>
+                          </Grid>
+                        </>
+                      )}
+                    </>
+                  )
                   : null}
                 {state.editComponent === "limits"
-                  ? <UpperLowerLimitsComponent />
-                  : null}
+                  ? (
+                    <>
+                      {changing.limits ? (
+                        <CircularProgress className={classes.progress} />
+                      ) : (
+                        <div>
+                          <>
+                            <Grid container spacing={GRID_SPACING}>
+                              <Grid item xs={5} sm={5}>
+                                <TextField
+                                  id="lowerLimit"
+                                  label="Lower Limit"
+                                  className={classes.textField}
+                                  value={state.lowerLimit}
+                                  onChange={handleLimitChange}
+                                  margin="normal"
+                                />
+                              </Grid>
+                              <Grid item xs={5} sm={5}>
+                                <TextField
+                                  id="upperLimit"
+                                  label="Upper Limit"
+                                  className={classes.textField}
+                                  value={state.upperLimit}
+                                  onChange={handleLimitChange}
+                                  margin="normal"
+                                />
+                              </Grid>
+                              <Grid item xs={2} sm={2}>
+                                <Button
+                                  variant="contained"
+                                  color="secondary"
+                                  size="small"
+                                  className={classes.holidaySaveBtn}
+                                  onClick={handleLimitsChangeClick}
+                                >
+                                  <SaveIcon
+                                    className={classNames(
+                                      classes.leftIcon,
+                                      classes.iconSmall
+                                    )}
+                                  />
+                                  Save
+                                </Button>
+                              </Grid>
+                            </Grid>
+                          </>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
               </Grid>
               <Grid item xs={1} sm={1}>
                 <CloseIcon
@@ -2233,29 +2214,7 @@ export default function DayStatComponent({
           null
         )}
       </Grid>
-      <Snackbar
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        open={state.open}
-        autoHideDuration={6000}
-        ContentProps={{
-          "aria-describedby": "message-id",
-        }}
-        message={<span id="message-id">{state.snackbarMessage}</span>}
-        action={[
-          <IconButton
-            key="close"
-            aria-label="Close"
-            color="inherit"
-            className={classes.close}
-            onClick={handleSnackClose}
-          >
-            <CloseIcon />
-          </IconButton>,
-        ]}
-      />
+      <SnackBarNotification />
       {/* <AdjustmentDialog openDialog={this.state.openDialog} closeDialog={this.closeDialog} dialogTitle="Modify Quantities" /> */}
     </div>
   ) : (

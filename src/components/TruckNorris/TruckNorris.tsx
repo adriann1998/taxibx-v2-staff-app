@@ -44,13 +44,6 @@ const TruckNorris = () => {
     brisNotes: "",
   });
 
-  // // TEST ==========================
-  useEffect(() => {
-    console.log(melbourne);
-    // console.log(sydney);
-    // console.log(brisbane);
-  }, [melbourne])
-
   // useEffect(() => {
   //   console.log(holidays);
   //   console.log(calculationData);
@@ -232,7 +225,11 @@ const TruckNorris = () => {
     let preparedData = [];
 
     // Loop through each day and assign values
-    if (remainingDays.length) {
+    if (
+      remainingDays.length &&
+      calculationData?.length &&
+      dateAndTrailerLimits?.length
+    ) {
       for (let day of remainingDays) {
         let dateObject: any = {
           date: "",
@@ -266,36 +263,38 @@ const TruckNorris = () => {
         dateObject.holiday = checkDateIsHoliday(day, site);
 
         // Assign calculation data
-        if (calculationData?.length) {
-          const calculationData = getCalculationDataForSite(site);
-          //console.log(site, day, calculationData);
-          if (calculationData) {
-            // Loop through each calculation data and assign for the date
-            for (let date in calculationData) {
-              if (date === day) {
-                dateObject.data = calculationData[date];
-              }
+        const calculationData = getCalculationDataForSite(site);
+        //console.log(site, day, calculationData);
+        if (calculationData) {
+          // Loop through each calculation data and assign for the date
+          for (let date in calculationData) {
+            if (date === day) {
+              dateObject.data = calculationData[date];
             }
           }
         }
+
         // Assign max min values and any other notifications
-        if (dateAndTrailerLimits?.length) {
-          const siteLimits = getLimitsForSite(site);
-          // set the max and min limits for the day
-          const dayName = moment(day)
-            .format("dddd")
-            .toLowerCase()
-            .substring(0, 3);
-          dateObject.limits = getLimitsForTheDay({
-            siteLimits,
-            dayName: dayName.toLocaleLowerCase() as DayOfTheWeek
-          });
-        }
+        const siteLimits = getLimitsForSite(site);
+        // set the max and min limits for the day
+        const dayName = moment(day)
+          .format("dddd")
+          .toLowerCase()
+          .substring(0, 3);
+        dateObject.limits = getLimitsForTheDay({
+          siteLimits,
+          dayName: dayName.toLocaleLowerCase() as DayOfTheWeek
+        });
+
+        // Add to list
         preparedData.push(dateObject);
-      }
+      };
+      return preparedData;
+    } else {
+      return undefined;
     }
 
-    return preparedData;
+    
   };
 
   const getLimitsForTheDay = ({
