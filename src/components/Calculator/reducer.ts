@@ -2,6 +2,7 @@ import {
   StorageCalculatorState,
   CalculatorPredefinedItem,
   CalculatorCustomItem,
+  CalculatorItem,
 } from '../../types';
 
 export type StorageCalculatorAction =
@@ -9,6 +10,8 @@ export type StorageCalculatorAction =
   | SendForCalculationAction
   | AddCustomItemAction
   | CalculationResponseReceivedAction
+  | RemoveItemAction
+  | ChangQuantityAction
 
 
 export const storageCalculatorReducer = (
@@ -16,22 +19,59 @@ export const storageCalculatorReducer = (
   action: StorageCalculatorAction
 ): typeof state => {
   switch (action.type) {
-    case 'UPDATE_PREDEFINED_ITEMS':
+    case 'UPDATE_PREDEFINED_ITEMS': {
       return updatePredefinedItems(action.items, state);
-    case 'SEND_FOR_CALCULATION':
+    };
+    case 'SEND_FOR_CALCULATION': {
       return { 
         ...state,
         calculationData: {},
         sentForCalculation: true,
       };
-    case 'ADD_CUSTOM_ITEM':
+    };
+    case 'ADD_CUSTOM_ITEM': {
       return insertItem(action.item, state);
-    case 'CALCULATION_RESPONSE_RECEIVED':
+    };
+    case 'CALCULATION_RESPONSE_RECEIVED': {
       return { 
         ...state,
         calculationData: action.payload.data,
         sentForCalculation: false,
-      }
+      };
+    };
+    case 'REMOVE_ITEM': {
+      const item = action.item;
+      //console.log('item delete request received', item);
+      const currentItems = [...state.selectedItemObjects];
+      const updatedList = currentItems.length > 0 ? currentItems.filter(listItem => {
+        return listItem.id !== item.id;
+      }) : [];
+      return {
+        ...state,
+        calculationData: {},
+        selectedItemObjects: updatedList,
+      };
+    };
+    case 'CHANGE_QUANTITY': {
+      const id = action.id;
+      const quantity = action.quantity
+      //console.log('item quantity change request received', id, quantity);
+      const item = getItem(id, state);
+      if (item) {
+        // Item exists, change the item quantity and return the state with the modified value.
+        item.quantity = quantity;
+        const otherItems = getOtherItems(id, state)
+        return { 
+          ...state,
+          calculationData: {},
+          selectedItemObjects: [...otherItems, item],
+          lastAddedItem: item,
+        };
+      } else {
+        console.warn(`item with id ${id} does not exist - please let IT team know :)`);
+        return state;
+      };
+    };
   }
 }
 
@@ -56,8 +96,19 @@ export type CalculationResponseReceivedAction = {
   }
 };
 
+export type RemoveItemAction = {
+  type: 'REMOVE_ITEM';
+  item: CalculatorItem;
+};
+
+export type ChangQuantityAction = {
+  type: 'CHANGE_QUANTITY';
+  id: string;
+  quantity: number;
+};
+
 // ============================================================================
-// Reducer Functions
+// Reducer Functions/Helpers
 // ============================================================================
 
 const updatePredefinedItems = (
@@ -86,6 +137,12 @@ const updatePredefinedItems = (
   }
 };
 
+/**
+ * Handles inserting items for both custom and pre-defined scenarios.
+ * 
+ * @param {*} item 
+ * @param {*} state 
+ */
 const insertItem = (
   item: CalculatorCustomItem,
   state: StorageCalculatorState,
@@ -97,3 +154,27 @@ const insertItem = (
     { ...state, selectedItemObjects: [item, ...state.selectedItemObjects], calculationData: {}, lastAddedItem: item }
     : state;
 };
+
+/**
+ * Gets an item of a given id if exists.
+ * 
+ * @param {*} id 
+ * @param {*} state 
+ */
+const getItem = (id: string, state: StorageCalculatorState) => {
+  return state.selectedItemObjects.filter(item => {
+    return item.id === id;
+  })[0];
+};
+
+/**
+ * Gets all the items other than the item having provided id.
+ * 
+ * @param {*} id 
+ * @param {*} state 
+ */
+const getOtherItems = (id: string, state: StorageCalculatorState) => {
+  return state.selectedItemObjects.filter(item => {
+    return item.id !== id;
+  });
+}

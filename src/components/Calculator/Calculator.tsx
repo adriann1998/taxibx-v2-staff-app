@@ -21,7 +21,7 @@ import CopyIcon from '@material-ui/icons/FileCopy';
 // Other components
 import CustomItemDialog from './CustomItemDialog';
 // import SearchableSelect2 from './SearchableSelect2';
-// import SelectedItemsList from './SelectedItemsList';
+import SelectedItemsList from './SelectedItemsList';
 // import ResultsContainer from './ResultsContainer';
 
 // Types
@@ -60,6 +60,10 @@ const Calculator = () => {
   const [horizontal, setHorizontal] = useState<"left" | "right" | "center">("right");
   const [preDefinedItems, setPreDefinedItems] = useState<CalculatorPredefinedItem[]>([]);
   const [state, dispatch] = useReducer(storageCalculatorReducer, storageCalculatorInitialState);
+
+  useEffect(() => {
+    console.log(state);
+  }, [state]);
 
   /** 
    * Set the custom item dialog state to Opened.
@@ -295,7 +299,10 @@ const Calculator = () => {
               </Grid>
               <Grid container spacing={0} className={classes.selectedItemsContainer}>
                 <Grid item xs={12} sm={12}>
-                  {/* <SelectedItemsList classes={classes} /> */}
+                  <SelectedItemsList
+                    state={state}
+                    dispatch={dispatch}
+                  />
                 </Grid>
               </Grid>
 
