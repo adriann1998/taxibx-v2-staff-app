@@ -102,6 +102,10 @@ interface CityNotesProps {
   handleNotesChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+// ============================================================================
+// Styles
+// ============================================================================
+
 const useStyles = makeStyles(theme => ({
   notesInput: {
     color: "red",
@@ -114,5 +118,9 @@ const useStyles = makeStyles(theme => ({
     margin: theme.spacing(2),
   },
 }));
+
+// ============================================================================
+// Export Default
+// ============================================================================
 
 export default CityNotes;

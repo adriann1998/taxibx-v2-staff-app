@@ -5,17 +5,12 @@ import ListItemText from '@material-ui/core/ListItemText';
 import AssessmentIcon from '@material-ui/icons/Exposure';
 import PlaceIcon from '@material-ui/icons/Place';
 import TruckNorrisIcon from '@material-ui/icons/LocalShipping';
-// import { navigationClicked } from '../../redux/actions'
 import { NavMenuItem } from '../../types';
 
 const ListItems = ({
   handleMenuClick,
   show,
 }: ListItemsProps) => {
-  
-  // const handleMenuClick = (menu: NavMenuItem) => {
-  //   this.props.navigationClicked(menu);
-  // }
 
   return (
     <div>
@@ -39,13 +34,7 @@ const ListItems = ({
       </ListItem>
     </div >
   );
-}
-// const mapStateToProps = state => {
-//   return {
-//     show: state.navigation.show
-//   };
-// };
-// const ListItems = mapStateToProps, { navigationClicked }(ListItemsComponent)
+};
 
 // ============================================================================
 // Props
@@ -55,5 +44,9 @@ interface ListItemsProps {
   handleMenuClick: (menu: NavMenuItem) => void;
   show: NavMenuItem;
 };
+
+// ============================================================================
+// Export Default
+// ============================================================================
 
 export default ListItems;

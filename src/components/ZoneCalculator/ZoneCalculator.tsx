@@ -228,6 +228,7 @@ const useStyles = makeStyles((theme) => ({
 // ============================================================================
 // Queries
 // ============================================================================
+
 type GetPostcodesData = {
   getPostcodes: PostcodeData[];
 };
@@ -300,5 +301,9 @@ const storageDurationMenuItems: StorageDurationMenuItem[] = [
   {label: '3-12 months', value: 3},
   {label: '12+ months', value: 12},
 ];
+
+// ============================================================================
+// Export Default
+// ============================================================================
 
 export default ZoneCalculator;

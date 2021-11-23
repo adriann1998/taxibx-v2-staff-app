@@ -2234,7 +2234,7 @@ interface DayStatComponentProps {
 
 
 // ============================================================================
-// Styles
+// Helpers
 // ============================================================================
 
 const apiURL = "https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod";

@@ -44,14 +44,6 @@ const TruckNorris = () => {
     brisNotes: "",
   });
 
-  // useEffect(() => {
-  //   console.log(holidays);
-  //   console.log(calculationData);
-  //   console.log(dateAndTrailerLimits);
-  //   console.log(userModifications);
-  // }, [holidays, calculationData, dateAndTrailerLimits, userModifications])
-  // // TEST =======================
-
   let loadInterval: NodeJS.Timeout;
   let interval: NodeJS.Timeout;
   let interval2: NodeJS.Timeout; 

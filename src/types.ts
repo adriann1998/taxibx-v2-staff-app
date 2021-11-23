@@ -1,4 +1,12 @@
+// ============================================================================
+// Global Types
+// ============================================================================
+
 export type NavMenuItem = 'trucknorris' | 'calculator' | 'zone-calculator';
+
+// ============================================================================
+// TruckNorris Types
+// ============================================================================
 
 export type DeliveryZone = 1 | 2 | 3 | 4 | undefined;
 
@@ -144,3 +152,67 @@ export interface Holiday {
   date: string;
   description: string;
 };
+
+// ============================================================================
+// Storage Calculator Types
+// ============================================================================
+
+export type ItemRestriction = "Can be flipped" | "Wall" | "No stack";
+
+export interface CalculatorPredefinedItem {
+  category: string;
+  components?: {
+    productId: string;
+    quantity: number;
+  }[];
+  cssId: string;
+  depth: number;
+  height: number;
+  id: string;
+  order: number;
+  predefined: boolean;
+  product: string;
+  public: boolean;
+  quantity?: number;
+  thumbnail: string;
+  width: number;
+  restriction?: ItemRestriction;
+  type?: string;
+};
+
+export interface CalculatorCustomItem {
+  id: string;
+  depth: number;
+  height: number;
+  width: number;
+  predefined: boolean;
+  flippable: boolean | null;
+  product: string;
+  quantity: number;
+  restriction?: ItemRestriction;
+  type?: string;
+};
+
+export interface CalculatorCustomItemInput {
+  product: string;
+  width: number;
+  height: number;
+  depth: number;
+  quantity: number;
+  flippable: boolean;
+};
+
+export type CalculatorItem = CalculatorPredefinedItem | CalculatorCustomItem;
+
+export interface StorageCalculatorState {
+  calculationData?: any;
+  lastAddedItem?: CalculatorItem;
+  selectedItemObjects: CalculatorItem[];
+  sentForCalculation: boolean;
+};
+
+export interface CalculatorItemOption {
+  label: string; 
+  value: string;
+};
+
