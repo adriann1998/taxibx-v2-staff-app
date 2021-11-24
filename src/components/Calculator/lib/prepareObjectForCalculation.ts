@@ -1,6 +1,6 @@
 import {
   CalculatorItem,
-} from '../../types';
+} from '../../../types';
 
 /**
  * Prepares the selected items for calculation.

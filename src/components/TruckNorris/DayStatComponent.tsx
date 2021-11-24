@@ -11,7 +11,6 @@ import {
   TextField,
   Button,
   Select,
-  Input,
   InputLabel,
   InputAdornment,
   Typography,
@@ -61,6 +60,7 @@ export default function DayStatComponent({
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [holidayDescription, setHolidayDescription] = useState<string>("");
   const [holiday, setHoliday] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>("");
   const [changing, setChanging] = useState<{
     holiday: boolean;
     message: boolean;
@@ -90,7 +90,6 @@ export default function DayStatComponent({
     open: boolean;
     infoMessageForDay: string;
     showDFWarning: boolean;
-    snackbarMessage: string;
   }>({
     arrowRef: null,
     editComponent: "",
@@ -107,8 +106,11 @@ export default function DayStatComponent({
     open: false,
     infoMessageForDay: "",
     showDFWarning: false,
-    snackbarMessage: "",
   });
+
+  useEffect(() => {
+    console.log(snackbarMessage)
+  }, [snackbarMessage])
 
   useEffect(() => {
     // Set warning
@@ -363,10 +365,7 @@ export default function DayStatComponent({
       .then((response) => {
         //console.log(response);
         data = null;
-        setState({
-          ...state,
-          snackbarMessage: "Data saved successfully!",
-        });
+        setSnackbarMessage("Data saved successfully!");
         setChanging({
           ...changing,
           holiday: false,
@@ -481,11 +480,7 @@ export default function DayStatComponent({
       .post("/userinfomsgdelete", data)
       .then((response) => {
         //console.log(response);
-        setState({
-          ...state,
-          //deletingMoveValues: false,
-          snackbarMessage: "Info message deleted successfully!",
-        });
+        setSnackbarMessage("Info message deleted successfully!");
         setUserEditingTruckNorrisData(false);
         setChanging({
           ...changing,
@@ -518,10 +513,10 @@ export default function DayStatComponent({
       .post("/userchangesdelete", data)
       .then((response) => {
         //console.log(response);
+        setSnackbarMessage("Locked reservation deleted successfully!");
         setState({
           ...state,
           deletingMoveValues: false,
-          snackbarMessage: "Locked reservation deleted successfully!",
         });
         setUserEditingTruckNorrisData(false);
         hideAdjustmentDialog();
@@ -552,17 +547,19 @@ export default function DayStatComponent({
                 <div className={classes.delText}>DEL</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <Input
+                <TextField
                   type="number"
                   id="del"
                   onChange={(event) =>
                     handleMoveValueChanges(event, "del")
                   }
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IncreaseDecreaseIcon />
-                    </InputAdornment>
-                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IncreaseDecreaseIcon />
+                      </InputAdornment>
+                    )
+                  }}
                 />
               </Grid>
             </Grid>
@@ -573,17 +570,19 @@ export default function DayStatComponent({
                 <div className={classes.delText}>RTN</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <Input
+                <TextField
                   type="number"
                   id="rtn"
                   onChange={(event) =>
                     handleMoveValueChanges(event, "rtn")
                   }
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IncreaseDecreaseIcon />
-                    </InputAdornment>
-                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IncreaseDecreaseIcon />
+                      </InputAdornment>
+                    )
+                  }}
                 />
               </Grid>
             </Grid>
@@ -606,17 +605,19 @@ export default function DayStatComponent({
                 <div className={classes.delText}>AM</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <Input
+                <TextField
                   type="number"
                   id="am"
                   onChange={(event) =>
                     handleMoveValueChanges(event, "am")
                   }
-                  endAdornment={
+                  InputProps={{
+                    endAdornment: (
                     <InputAdornment position="end">
                       <IncreaseDecreaseIcon />
                     </InputAdornment>
-                  }
+                    )
+                  }}
                 />
               </Grid>
             </Grid>
@@ -627,17 +628,19 @@ export default function DayStatComponent({
                 <div className={classes.delText}>PM</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <Input
+                <TextField
                   type="number"
                   id="pm"
                   onChange={(event) =>
                     handleMoveValueChanges(event, "pm")
                   }
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IncreaseDecreaseIcon />
-                    </InputAdornment>
-                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IncreaseDecreaseIcon />
+                      </InputAdornment>
+                    )
+                  }}
                 />
               </Grid>
             </Grid>
@@ -661,17 +664,19 @@ export default function DayStatComponent({
                 <div className={classes.delText}>TRL</div>
               </Grid>
               <Grid item xs={8} sm={8}>
-                <Input
+                <TextField
                   type="number"
                   id="tlr"
                   onChange={(event) =>
                     handleMoveValueChanges(event, "trl")
                   }
-                  endAdornment={
+                  InputProps={{
+                    endAdornment: (
                     <InputAdornment position="end">
                       <IncreaseDecreaseIcon />
                     </InputAdornment>
-                  }
+                    )
+                  }}
                 />
               </Grid>
             </Grid>
@@ -817,8 +822,8 @@ export default function DayStatComponent({
   };
 
   const SnackBarNotification = () => {
-    return state.snackbarMessage && 
-      state.snackbarMessage !== "" ? (
+    return snackbarMessage && 
+      snackbarMessage !== "" ? (
         <Snackbar
           anchorOrigin={{
             vertical: "bottom",
@@ -829,7 +834,7 @@ export default function DayStatComponent({
           ContentProps={{
             "aria-describedby": "message-id",
           }}
-          message={<span id="message-id">{state.snackbarMessage}</span>}
+          message={<span id="message-id">{snackbarMessage}</span>}
           action={[
             <IconButton
               key="close"
@@ -1938,7 +1943,6 @@ export default function DayStatComponent({
             </Grid>
           </Grid>
         ) : (
-          //: <span style={{ margin: 'auto', color: 'white', fontSize: 22 }}>{this.getInfoMessage()}</span>
           ""
         )}
         {openDialog ? (
@@ -2149,6 +2153,7 @@ export default function DayStatComponent({
                                 <TextField
                                   id="lowerLimit"
                                   label="Lower Limit"
+                                  type="number"
                                   className={classes.textField}
                                   value={state.lowerLimit}
                                   onChange={handleLimitChange}
@@ -2159,6 +2164,7 @@ export default function DayStatComponent({
                                 <TextField
                                   id="upperLimit"
                                   label="Upper Limit"
+                                  type="number"
                                   className={classes.textField}
                                   value={state.upperLimit}
                                   onChange={handleLimitChange}
@@ -2215,7 +2221,6 @@ export default function DayStatComponent({
         )}
       </Grid>
       <SnackBarNotification />
-      {/* <AdjustmentDialog openDialog={this.state.openDialog} closeDialog={this.closeDialog} dialogTitle="Modify Quantities" /> */}
     </div>
   ) : (
     null

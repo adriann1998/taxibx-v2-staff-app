@@ -3,7 +3,7 @@ import {
   CalculatorPredefinedItem,
   CalculatorCustomItem,
   CalculatorItem,
-} from '../../types';
+} from '../../../types';
 
 export type StorageCalculatorAction =
   | UpdatePredefinedItemsAction

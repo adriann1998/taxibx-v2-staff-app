@@ -31,9 +31,6 @@ const CustomListItem = ({
   expanded,
 }: CustomListItemProps) => {
 
-  console.log(expanded);
-  console.log(item);
-
   const classes =  useStyles();
 
   /** 

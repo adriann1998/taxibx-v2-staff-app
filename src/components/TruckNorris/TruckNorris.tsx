@@ -50,12 +50,12 @@ const TruckNorris = () => {
 
   useEffect(() => {
     executeOnce();
-    // Load data every minute if the user is not editing data
+    // Load data 5 seconds if the user is not editing data
     if (!userEditingTruckNorrisData) {
       try {
         loadInterval = setInterval(async () => {
           loadData();
-        }, 60 * 1000);
+        }, 5 * 1000);
       } catch (e) {
         console.log(e);
       }

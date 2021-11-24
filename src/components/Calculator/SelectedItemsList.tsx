@@ -11,7 +11,7 @@ import {
 
 import {
   StorageCalculatorAction,
-} from './reducer';
+} from './lib/reducer';
 
 /**
  * Responsible for loading the selected items list.
@@ -27,7 +27,6 @@ const SelectedItemsList = ({
    * Handles the expansion change of a selected item.
    */
   const handleExpansionChange = (panel: string) => {
-    console.log("changeing" + " " + panel)
     setExpanded(expanded === panel ? undefined : panel);
   };
 

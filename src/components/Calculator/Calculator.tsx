@@ -20,7 +20,7 @@ import CopyIcon from '@material-ui/icons/FileCopy';
 
 // Other components
 import CustomItemDialog from './CustomItemDialog';
-// import SearchableSelect2 from './SearchableSelect2';
+import SearchableSelect2 from './SearchableSelect2';
 import SelectedItemsList from './SelectedItemsList';
 // import ResultsContainer from './ResultsContainer';
 
@@ -36,9 +36,9 @@ import {
 
 import {
   storageCalculatorReducer,
-} from './reducer';
+} from './lib/reducer';
 
-import prepareObjectForCalculation from './prepareObjectForCalculation';
+import prepareObjectForCalculation from './lib/prepareObjectForCalculation';
 import copy from 'copy-to-clipboard';
 
 const API_URL = 'https://0gvhj0sl8b.execute-api.ap-southeast-2.amazonaws.com/prod/';
@@ -95,7 +95,7 @@ const Calculator = () => {
    */
   const altCClickFunction = (event: KeyboardEvent): any => {
     // Set the array if Alt key (18) or C key (67)
-    if (event.key === 'alt' || event.key === 'c') {
+    if (event.key === 'Alt' || event.key === 'c') {
       keysPressed[event.key] = true;
     }
     // Close the dialog if the Esc key is pressed
@@ -108,7 +108,7 @@ const Calculator = () => {
    * Opens the custom item adding dialog if both Alt and C keys are pressed.
    */
   const showPopUpOnKeyPress = () => {
-    if (keysPressed['c'] && keysPressed['alt']) {
+    if (keysPressed['c'] && keysPressed['Alt']) {
       handleDialogClickOpen();
     }
   }
@@ -272,12 +272,11 @@ const Calculator = () => {
                 <Grid item xs={12} sm={6}>
                   <FormControl className={classes.formControl}>
                     <InputLabel className={classes.itemSearchTitle}>Pre-defined Items</InputLabel>
-                    {/* <SearchableSelect2
+                    <SearchableSelect2
+                      state={state}
                       suggestions={preDefinedItems}
-                      tabIndex={0}
-                      className={classes.searchableSelect}
                       handlePredefinedItemSelection={(selected: CalculatorItemOption[]) => handlePredefinedItemSelection(selected)}
-                    /> */}
+                    />
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
