@@ -40,7 +40,7 @@ import {
   UserModData,
 } from '../../types';
 
-export default function DayStatComponent({
+const DayStatComponent = ({
   dateAndTrailerLimits,
   day,
   site,
@@ -48,7 +48,7 @@ export default function DayStatComponent({
   userMods,
   userEditingTruckNorrisData,
   setUserEditingTruckNorrisData,
-}: DayStatComponentProps) {
+}: DayStatComponentProps) => {
 
   const classes = useStyles();
 
@@ -58,7 +58,8 @@ export default function DayStatComponent({
   const ip: string = authContext._user.profile.ipaddr;
   
   // Constant variables
-  const activeReservations = userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? value : undefined) : [];
+  const currentTime = moment().valueOf();
+  const activeReservations = userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? true : false) : [];
   const clientsCount: number = day.data && day.data.customers && day.data.customers.length ? day.data.customers.length : 0;
   const showDFWarning = (day.limits &&
       day.limits[0][day.dateBroken[0].toLowerCase()].max &&
@@ -68,36 +69,26 @@ export default function DayStatComponent({
       day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
     ? true
     : false;
-  const initialLimits: {upper: number, lower: number} = (userMods && userMods.limits)
-    ? {upper: parseInt(userMods.limits[0].upper), lower: parseInt(userMods.limits[0].lower)}
-    : (day.limits && day.limits.length)
-    ? {upper: day.limits[0][day.dateBroken[0].toLowerCase()].max, lower: day.limits[0][day.dateBroken[0].toLowerCase()].min}
-    : {upper: 0, lower: 0}
+  const initialLimits: {upper: number, lower: number} = 
+    (userMods.limits && userMods.limits[0].upper && userMods.limits[0].lower)
+      ? {upper: parseInt(userMods.limits[0].upper), lower: parseInt(userMods.limits[0].lower)}
+      : (day.limits && day.limits.length)
+      ? {upper: day.limits[0][day.dateBroken[0].toLowerCase()].max, lower: day.limits[0][day.dateBroken[0].toLowerCase()].min}
+      : {upper: 0, lower: 0}
+
+  const hasUserLockedData = activeReservations.filter(entry => entry.user === user).length !== 0;
   const userSumMoves = (userMods && userMods.values && userMods.values.length)
     ? userMods.values.filter(entry => entry.ttl >= moment().valueOf()).reduce((acc: number, entry: any) => acc + entry.del + entry.rtn, 0)
     : 0;
   const moves = day.data.pickup + day.data.delivery + userSumMoves;
-  const upperLimit =
-    userMods.limits &&
-    userMods.limits[0].upper &&
-    parseInt(userMods.limits[0].upper) > 0
-      ? parseInt(userMods.limits[0].upper)
-      : day.limits[0][day.dateBroken[0].toLowerCase()].max;
-  const lowerLimit =
-    userMods.limits &&
-    userMods.limits[0].lower &&
-    parseInt(userMods.limits[0].lower) > 0
-      ? parseInt(userMods.limits[0].lower)
-      : day.limits[0][day.dateBroken[0].toLowerCase()].min;
-  // const color = day?.dateBroken[0].toLowerCase() === "sun"
-  //   ? "#ffffff"
-  //   : moves <= Math.round((upperLimit * 2) / 3)
-  //   ? "#8BC34A"
-  //   : moves >= lowerLimit && moves < upperLimit
-  //   ? "#FF9800"
-  //   : moves >= upperLimit
-  //   ? "#F44336"
-  //   : "#ffffff";
+  const userChangedValues = {
+    am: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.am > 0).reduce((acc, val) => acc + val.am, 0) : 0,
+    pm: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.pm > 0).reduce((acc, val) => acc + val.pm, 0) : 0,
+    trl: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.trl > 0).reduce((acc, val) => acc + val.trl, 0) : 0,
+    del: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.del > 0).reduce((acc, val) => acc + val.del, 0) : 0,
+    rtn: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.rtn > 0).reduce((acc, val) => acc + val.rtn, 0) : 0,
+    any: userMods.values ? userMods.values.filter(val => val.ttl > currentTime).reduce((acc, val) => acc + (val.rtn + val.del - (val.am + val.pm)), 0) : 0,
+  };
 
   // console.log(userMods.holiday[0]?.holiday)
   // const initialHolidayState: boolean =  (userMods.holiday[0]?.holiday) || (day.holiday && typeof day.holiday !== 'boolean' && day.holiday.description)
@@ -113,6 +104,8 @@ export default function DayStatComponent({
   const [holiday, setHoliday] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>();
   const [editComponent, setEditComponent] = useState<string>("");
+  const [color, setColor] = useState<string>("#ffffff");
+  const [infoMessage, setInfoMessage] = useState<string>("");
 
   const [changing, setChanging] = useState<{
     holiday: boolean;
@@ -143,8 +136,8 @@ export default function DayStatComponent({
   }>({
     arrowRef: null,
     movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
-    upperLimit: initialLimits.lower,
-    lowerLimit: initialLimits.upper,
+    upperLimit: initialLimits.upper,
+    lowerLimit: initialLimits.lower,
     ttl: 10,
     del: 0,
     rtn: 0,
@@ -157,6 +150,9 @@ export default function DayStatComponent({
 
   const isDayClosed = holiday || holidayDescription !== "";
 
+  /**
+   * Apply initial state
+   */
   useEffect(() => {
     // Set Holiday
     if (
@@ -181,251 +177,39 @@ export default function DayStatComponent({
     }
   }, []);
 
-  const hideAdjustmentDialog = useCallback(() => {
-    setEditComponent("");
-    setOpenDialog(false);
-    setUserEditingTruckNorrisData(false);
-  }, []);
-
-  const handleLimitChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setState({ 
-      ...state,
-      [event.target.id]: event.target.value,
-    });
-  }, []);
-
-  const handleUserAddedValuesChangeClick = () => {
-    let ttl = 0;
-    switch (state.ttl) {
-      case 10:
-        ttl = moment().add(10, "minutes").valueOf();
-        break;
-      case 20:
-        ttl = moment().add(20, "minutes").valueOf();
-        break;
-      case 30:
-        ttl = moment().add(30, "minutes").valueOf();
-        break;
-      case 60:
-        ttl = moment().add(1, "hours").valueOf();
-        break;
-      case 120:
-        ttl = moment().add(2, "hours").valueOf();
-        break;
-      case 360:
-        ttl = moment().add(6, "hours").valueOf();
-        break;
-      case 720:
-        ttl = moment().add(12, "hours").valueOf();
-        break;
-      case 1440:
-        ttl = moment().add(24, "hours").valueOf();
-        break;
-      default:
-        ttl = 0;
-    }
-    const data = {
-      type: "values",
-      del: state.del,
-      rtn: state.rtn,
-      am: state.am,
-      pm: state.pm,
-      trl: state.trl,
-      ttl: ttl,
-    };
-    setState({
-      ...state,
-      ttl: 10,
-      del: 0,
-      rtn: 0,
-      am: 0,
-      pm: 0,
-      trl: 0,
-    });
-    setChanging({
-      ...changing,
-      moveValues: true,
-    })
-    sendDataToApi(data);
-  };
-
-  const handleSnackClose = useCallback(() => {
-    setSnackbarMessage(undefined);
-  }, []);
-
-  const sendDataToApi = (data: any) => {
-    // Add user data and time
-    data.did = cuid();
-    data.ip = ip;
-    data.user = user;
-    data.time = moment().format("YYYY-MM-DD HH:mm:ss");
-    data.date = day.date;
-    data.site = site;
-
-    // Retrieve calculation data
-    axiosInstance
-      .post("/", data)
-      .then((response) => {
-        //console.log(response);
-        data = null;
-        setSnackbarMessage("Data saved successfully!");
-        setChanging({
-          ...changing,
-          holiday: false,
-          message: false,
-          limits: false,
-          moveValues: false,
-          infoMessage: false,
-        })
-        setUserEditingTruckNorrisData(false);
-        hideAdjustmentDialog();
-        // show success message
-        setTimeout(() => handleSnackClose(), 1000);
-        executeOnce();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
   /**
-   * Finds the correct background color for the moves component
+   * Change card color whenever the state changes or moves changes
    */
-  const getBackgroundColor = () => {
+  useEffect(() => {
     let color = "#ffffff"; // more than 2/3 of upper limit and less than lower limit
     // Get the max limit for the day
     if (day && day.dateBroken[0].toLowerCase() !== "sun") {
       // Check whether user edited data exists, if so, consider them as limits
 
-      const upperLimit =
-        userMods &&
-        userMods.limits &&
-        userMods.limits[0].upper &&
-        parseInt(userMods.limits[0].upper) > 0
-          ? parseInt(userMods.limits[0].upper)
-          : day.limits[0][day.dateBroken[0].toLowerCase()].max;
-      const lowerLimit =
-        userMods &&
-        userMods.limits &&
-        userMods.limits[0].lower &&
-        parseInt(userMods.limits[0].lower) > 0
-          ? parseInt(userMods.limits[0].lower)
-          : day.limits[0][day.dateBroken[0].toLowerCase()].min;
+      const upperLimit = state.upperLimit;
+      const lowerLimit = state.lowerLimit;
 
       if (moves <= Math.round((upperLimit * 2) / 3)) {
         // healthy
         color = "#8BC34A";
-      }
+      };
       if (moves >= lowerLimit && moves < upperLimit) {
         // warning
         color = "#FF9800";
-      }
+      };
       if (moves >= upperLimit) {
         // danger
         color = "#F44336";
-      }
-    }
-
-    return color;
-  };
-
-  const handleInfoMessageDeleteClick = (id: string) => {
-    setChanging({ 
-      ...changing,
-      holiday: true,
-    });
-    setUserEditingTruckNorrisData(true);
-    //this.setState({ deletingMoveValues: true });
-    const data = {
-      site: site,
-      date: day.date,
-      did: id,
+      };
     };
-    // post delete data
-    axiosInstance
-      .post("/userinfomsgdelete", data)
-      .then((response) => {
-        //console.log(response);
-        setSnackbarMessage("Info message deleted successfully!");
-        setUserEditingTruckNorrisData(false);
-        setChanging({
-          ...changing,
-          holiday: false,
-        })
-        hideAdjustmentDialog();
-        setTimeout(() => handleSnackClose(), 1000);
-        executeOnce();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
 
-  const handleDeleteReservationClick = (did: string) => {
-    setUserEditingTruckNorrisData(true);
-    setState({
-      ...state,
-      deletingMoveValues: true,
-    });
-    const data = {
-      site: site,
-      date: day.date,
-      did: did,
-    };
-    // post delete data
-    axiosInstance
-      .post("/userchangesdelete", data)
-      .then((response) => {
-        //console.log(response);
-        setSnackbarMessage("Locked reservation deleted successfully!");
-        setState({
-          ...state,
-          deletingMoveValues: false,
-        });
-        setUserEditingTruckNorrisData(false);
-        hideAdjustmentDialog();
-        setTimeout(() => handleSnackClose(), 1000);
-        executeOnce();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+    setColor(color);
+  }, [state.upperLimit, state.lowerLimit]);
 
   /**
-   * Checks whether there are locked reservations for the logged in user
+   * Sets the info message to be displayed in the Moves box
    */
-   const hasUserLockedData = () => {
-    if (
-      userMods &&
-      userMods.values &&
-      userMods.values.length
-    ) {
-      // Check whether there are active reservations
-      const activeReservations = userMods.values.filter((value) => {
-        if (value.ttl >= moment().valueOf()) {
-          return value;
-        }
-      });
-      if (activeReservations && activeReservations.length) {
-        for (let value of activeReservations) {
-          if (value.user === user) {
-            return true;
-          }
-        }
-        return false;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  };
-
-  /**
-   * Gets the info message to be displayed in the Moves box
-   */
-   const getInfoMessage = () => {
+  useEffect(() => {
     let message = "";
     //console.log(this.state.holiday);
     if (holiday) {
@@ -459,45 +243,61 @@ export default function DayStatComponent({
         userMods.message[0].message !== "N/A"
           ? userMods.message[0].message.toUpperCase()
           : "";
-    }
-
-    return message;
-  };
-
-  const getUserChangedValues = () => {
-    let values = {
-      am: 0,
-      pm: 0,
-      trl: 0,
-      del: 0,
-      rtn: 0,
-      any: 0,
     };
-    if (userMods && userMods.values) {
-      // Loop through each user modification and add/remove values if the ttl is not expired
-      const currentTime = moment().valueOf();
-      for (let value of userMods.values) {
-        if (value.ttl > currentTime) {
-          if (value.am > 0) {
-            values.am += value.am;
-          }
-          if (value.pm > 0) {
-            values.pm += value.pm;
-          }
-          if (value.del > 0) {
-            values.del += value.del;
-          }
-          if (value.rtn > 0) {
-            values.rtn += value.rtn;
-          }
-          if (value.trl > 0) {
-            values.trl += value.trl;
-          }
-          values.any += value.rtn + value.del - (value.am + value.pm);
-        }
-      }
-    }
-    return values;
+    setInfoMessage(message);
+  }, [holiday]);
+
+  const hideAdjustmentDialog = useCallback(() => {
+    setEditComponent("");
+    setOpenDialog(false);
+    setUserEditingTruckNorrisData(false);
+  }, []);
+
+  const handleLimitChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setState({ 
+      ...state,
+      [event.target.id]: event.target.value,
+    });
+  }, []);
+
+  const handleSnackClose = useCallback(() => {
+    setSnackbarMessage(undefined);
+  }, []);
+
+  const sendDataToApi = (data: any) => {
+    // Add user data and time
+    data.did = cuid();
+    data.ip = ip;
+    data.user = user;
+    data.time = moment().format("YYYY-MM-DD HH:mm:ss");
+    data.date = day.date;
+    data.site = site;
+
+    // Retrieve calculation data
+    axiosInstance
+      .post("/", data)
+      .then((response) => {
+        //console.log(response);
+        data = null;
+        setSnackbarMessage("Data saved successfully!");
+        setChanging({
+          ...changing,
+          holiday: false,
+          message: false,
+          limits: false,
+          moveValues: false,
+          infoMessage: false,
+        })
+        setUserEditingTruckNorrisData(false);
+        hideAdjustmentDialog();
+        setInfoMessage(data.message);
+        // show success message
+        setTimeout(() => handleSnackClose(), 1000);
+        executeOnce();
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
 
   const calculatePercentage = (prop: "time" | "delivery") => {
@@ -517,12 +317,11 @@ export default function DayStatComponent({
     } = initialPercentageValues;
     let total = 0;
     let calData = { ...day.data };
-    const userData = getUserChangedValues();
+    const userData = userChangedValues;
     switch (prop) {
       case "delivery":
         // If there are user added data, add them to the values before processing
         if (calData) {
-          //console.log(calData.pickup, this.getUserChangedValues().rtn);
           calData.pickup =
             calData.pickup && calData.pickup > 0
               ? calData.pickup + userData.rtn
@@ -531,7 +330,6 @@ export default function DayStatComponent({
             calData.delivery && calData.delivery > 0
               ? calData.delivery + userData.rtn
               : userData.rtn;
-          //console.log(calData.pickup);
         }
         if (
           calData &&
@@ -689,7 +487,7 @@ export default function DayStatComponent({
     <div
       className={classes.root}
       style={
-        hasUserLockedData() ||
+        hasUserLockedData ||
         (isDayClosed && day.dateBroken[0].toLowerCase() !== "sun")
           ? {
               flexGrow: 1,
@@ -814,9 +612,8 @@ export default function DayStatComponent({
               spacing={0}
               className={classes.dayComponent}
               style={{
-                background: getBackgroundColor(),
-                color:
-                  getBackgroundColor() !== "#ffffff" ? "white" : "black",
+                background: color,
+                color: color !== "#ffffff" ? "white" : "black",
               }}
             >
               <Grid item xs={12} sm={12}>
@@ -824,15 +621,12 @@ export default function DayStatComponent({
                   style={{
                     fontSize: 10,
                     fontWeight: "bold",
-                    color:
-                      getBackgroundColor() !== "#ffffff"
-                        ? "white"
-                        : "#595959",
+                    color: color !== "#ffffff" ? "white" : "#595959",
                   }}
                 >
                   {!isDayClosed &&
                   day.dateBroken[0].toLowerCase() !== "sun"
-                    ? getInfoMessage().toUpperCase()
+                    ? infoMessage.toUpperCase()
                     : null}
                 </div>
               </Grid>
@@ -845,10 +639,7 @@ export default function DayStatComponent({
                 <span
                   style={{
                     fontSize: 12,
-                    color:
-                      getBackgroundColor() !== "#ffffff"
-                        ? "white"
-                        : "#595959",
+                    color: color !== "#ffffff" ? "white" : "#595959",
                   }}
                 >
                   Moves
@@ -890,7 +681,7 @@ export default function DayStatComponent({
                   <div className={classes.upperText}>Upper</div>
                 </div>
               ) : (
-                <strong>{getInfoMessage().toUpperCase()}</strong>
+                <strong>{infoMessage.toUpperCase()}</strong>
               )}
             </div>
           </Grid>
@@ -911,9 +702,8 @@ export default function DayStatComponent({
                               <strong>
                                 AM: &nbsp;
                                 {day.data && day.data.am && day.data.am > 0
-                                  ? day.data.am +
-                                    getUserChangedValues().am
-                                  : getUserChangedValues().am}
+                                  ? day.data.am +  userChangedValues.am
+                                  : userChangedValues.am}
                               </strong>
                             </span>
                             <span
@@ -969,9 +759,8 @@ export default function DayStatComponent({
                                 {day.data &&
                                 day.data.anytime &&
                                 day.data.anytime > 0
-                                  ? day.data.anytime +
-                                    getUserChangedValues().any
-                                  : getUserChangedValues().any}
+                                  ? day.data.anytime + userChangedValues.any
+                                  : userChangedValues.any}
                               </strong>
                             </span>
                             <span
@@ -1037,9 +826,8 @@ export default function DayStatComponent({
                               <strong>
                                 PM: &nbsp;
                                 {day.data && day.data.pm && day.data.pm > 0
-                                  ? day.data.pm +
-                                    getUserChangedValues().pm
-                                  : getUserChangedValues().pm}
+                                  ? day.data.pm + userChangedValues.pm
+                                  : userChangedValues.pm}
                               </strong>
                             </span>
                             <span
@@ -1103,9 +891,8 @@ export default function DayStatComponent({
                                 {day.data &&
                                 day.data.delivery &&
                                 day.data.delivery > 0
-                                  ? day.data.delivery +
-                                    getUserChangedValues().del
-                                  : getUserChangedValues().del}
+                                  ? day.data.delivery + userChangedValues.del
+                                  : userChangedValues.del}
                               </strong>
                             </span>
                             <span
@@ -1166,9 +953,8 @@ export default function DayStatComponent({
                                 {day.data &&
                                 day.data.pickup &&
                                 day.data.pickup > 0
-                                  ? day.data.pickup +
-                                    getUserChangedValues().rtn
-                                  : getUserChangedValues().rtn}
+                                  ? day.data.pickup + userChangedValues.rtn
+                                  : userChangedValues.rtn}
                               </strong>
                             </span>
                             <span
@@ -1285,7 +1071,7 @@ export default function DayStatComponent({
                   day.data &&
                   day.data.trailers &&
                   day.data.trailers > 0 &&
-                  day.data.trailers + getUserChangedValues().trl >=
+                  day.data.trailers + userChangedValues.trl >=
                     Math.round((dateAndTrailerLimits.trailers * 2) / 3) ? (
                     <Grid item xs={2} sm={2}>
                       <Tooltip
@@ -1313,16 +1099,14 @@ export default function DayStatComponent({
                           },
                         }}
                       >
-                        {day.data.trailers +
-                          getUserChangedValues().trl >=
+                        {day.data.trailers + userChangedValues.trl >=
                         Math.round(
                           (dateAndTrailerLimits.trailers * 2) / 3
                         ) ? (
                           <TrailerIcon
                             style={{
                               color:
-                                day.data.trailers +
-                                  getUserChangedValues().trl >=
+                                day.data.trailers + userChangedValues.trl >=
                                 dateAndTrailerLimits.trailers
                                   ? "red"
                                   : "white",
@@ -1686,7 +1470,60 @@ export default function DayStatComponent({
                                 state.trl === 0
                               }
                               className={classes.holidaySaveBtn}
-                              onClick={handleUserAddedValuesChangeClick}
+                              onClick={() => {
+                                let ttl = 0;
+                                switch (state.ttl) {
+                                  case 10:
+                                    ttl = moment().add(10, "minutes").valueOf();
+                                    break;
+                                  case 20:
+                                    ttl = moment().add(20, "minutes").valueOf();
+                                    break;
+                                  case 30:
+                                    ttl = moment().add(30, "minutes").valueOf();
+                                    break;
+                                  case 60:
+                                    ttl = moment().add(1, "hours").valueOf();
+                                    break;
+                                  case 120:
+                                    ttl = moment().add(2, "hours").valueOf();
+                                    break;
+                                  case 360:
+                                    ttl = moment().add(6, "hours").valueOf();
+                                    break;
+                                  case 720:
+                                    ttl = moment().add(12, "hours").valueOf();
+                                    break;
+                                  case 1440:
+                                    ttl = moment().add(24, "hours").valueOf();
+                                    break;
+                                  default:
+                                    ttl = 0;
+                                }
+                                const data = {
+                                  type: "values",
+                                  del: state.del,
+                                  rtn: state.rtn,
+                                  am: state.am,
+                                  pm: state.pm,
+                                  trl: state.trl,
+                                  ttl: ttl,
+                                };
+                                setState({
+                                  ...state,
+                                  ttl: 10,
+                                  del: 0,
+                                  rtn: 0,
+                                  am: 0,
+                                  pm: 0,
+                                  trl: 0,
+                                });
+                                setChanging({
+                                  ...changing,
+                                  moveValues: true,
+                                })
+                                sendDataToApi(data);
+                              }}
                             >
                               <SaveIcon
                                 className={classNames(classes.leftIcon, classes.iconSmall)}
@@ -1842,7 +1679,38 @@ export default function DayStatComponent({
                                           </div>
                                         </Grid>
                                         <Grid item xs={1} sm={1}>
-                                          <a onClick={() => handleInfoMessageDeleteClick(msg.did)}>
+                                          <a onClick={() => {
+                                            setChanging({ 
+                                              ...changing,
+                                              holiday: true,
+                                            });
+                                            setUserEditingTruckNorrisData(true);
+                                            //this.setState({ deletingMoveValues: true });
+                                            const data = {
+                                              site: site,
+                                              date: day.date,
+                                              did: msg.did,
+                                            };
+                                            // post delete data
+                                            axiosInstance
+                                              .post("/userinfomsgdelete", data)
+                                              .then((response) => {
+                                                //console.log(response);
+                                                setSnackbarMessage("Info message deleted successfully!");
+                                                setUserEditingTruckNorrisData(false);
+                                                setChanging({
+                                                  ...changing,
+                                                  holiday: false,
+                                                })
+                                                hideAdjustmentDialog();
+                                                setTimeout(() => handleSnackClose(), 1000);
+                                                executeOnce();
+                                              })
+                                              .catch((error) => {
+                                                console.log(error);
+                                              });
+                                            }}
+                                          >
                                             <DeleteIcon
                                               className={classes.leftIcon}
                                             />
@@ -1895,9 +1763,10 @@ export default function DayStatComponent({
                                     ...changing,
                                     message: true,
                                   });
+                                  const theNewMessage = state.movesMessage !== "" ? state.movesMessage : "N/A";
                                   const data = {
                                     type: "message",
-                                    message: state.movesMessage !== "" ? state.movesMessage : "N/A",
+                                    message: theNewMessage,
                                   };
                                   sendDataToApi(data);
                                 }}
@@ -1966,7 +1835,36 @@ export default function DayStatComponent({
                                       <Grid item xs={1} sm={1}>
                                         {value.user === user ? (
                                           <DeleteIcon
-                                            onClick={() => handleDeleteReservationClick(value.did)}
+                                            onClick={() => {
+                                              setUserEditingTruckNorrisData(true);
+                                              setState({
+                                                ...state,
+                                                deletingMoveValues: true,
+                                              });
+                                              const data = {
+                                                site: site,
+                                                date: day.date,
+                                                did: value.did,
+                                              };
+                                              // post delete data
+                                              axiosInstance
+                                                .post("/userchangesdelete", data)
+                                                .then((response) => {
+                                                  //console.log(response);
+                                                  setSnackbarMessage("Locked reservation deleted successfully!");
+                                                  setState({
+                                                    ...state,
+                                                    deletingMoveValues: false,
+                                                  });
+                                                  setUserEditingTruckNorrisData(false);
+                                                  hideAdjustmentDialog();
+                                                  setTimeout(() => handleSnackClose(), 1000);
+                                                  executeOnce();
+                                                })
+                                                .catch((error) => {
+                                                  console.log(error);
+                                                });
+                                            }}
                                           />
                                         ) : (
                                           false
@@ -2419,3 +2317,9 @@ const useStyles = makeStyles(theme => ({
     paddingBottom: 5,
   },
 }));
+
+// ============================================================================
+// Export Default
+// ============================================================================
+
+export default DayStatComponent;

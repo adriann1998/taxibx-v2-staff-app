@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from "axios";
 import {
   makeStyles,
@@ -22,7 +22,7 @@ import {
 import SiteStats from './SiteStats';
 import CityNotes from './CityNotes';
 
-const TruckNorris = () => {
+const TruckNorris = React.memo(() => {
 
   const classes = useStyles();
 
@@ -489,7 +489,7 @@ const TruckNorris = () => {
       </Grid>
     </div>
   )
-};
+});
 
 // ============================================================================
 // Styles
