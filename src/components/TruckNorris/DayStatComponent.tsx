@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   makeStyles,
   Grid,
@@ -60,11 +60,59 @@ export default function DayStatComponent({
   // Constant variables
   const activeReservations = userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? value : undefined) : [];
   const clientsCount: number = day.data && day.data.customers && day.data.customers.length ? day.data.customers.length : 0;
+  const showDFWarning = (day.limits &&
+      day.limits[0][day.dateBroken[0].toLowerCase()].max &&
+      day.data &&
+      day.data.dfCount &&
+      (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
+      day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
+    ? true
+    : false;
+  const initialLimits: {upper: number, lower: number} = (userMods && userMods.limits)
+    ? {upper: parseInt(userMods.limits[0].upper), lower: parseInt(userMods.limits[0].lower)}
+    : (day.limits && day.limits.length)
+    ? {upper: day.limits[0][day.dateBroken[0].toLowerCase()].max, lower: day.limits[0][day.dateBroken[0].toLowerCase()].min}
+    : {upper: 0, lower: 0}
+  const userSumMoves = (userMods && userMods.values && userMods.values.length)
+    ? userMods.values.filter(entry => entry.ttl >= moment().valueOf()).reduce((acc: number, entry: any) => acc + entry.del + entry.rtn, 0)
+    : 0;
+  const moves = day.data.pickup + day.data.delivery + userSumMoves;
+  const upperLimit =
+    userMods.limits &&
+    userMods.limits[0].upper &&
+    parseInt(userMods.limits[0].upper) > 0
+      ? parseInt(userMods.limits[0].upper)
+      : day.limits[0][day.dateBroken[0].toLowerCase()].max;
+  const lowerLimit =
+    userMods.limits &&
+    userMods.limits[0].lower &&
+    parseInt(userMods.limits[0].lower) > 0
+      ? parseInt(userMods.limits[0].lower)
+      : day.limits[0][day.dateBroken[0].toLowerCase()].min;
+  // const color = day?.dateBroken[0].toLowerCase() === "sun"
+  //   ? "#ffffff"
+  //   : moves <= Math.round((upperLimit * 2) / 3)
+  //   ? "#8BC34A"
+  //   : moves >= lowerLimit && moves < upperLimit
+  //   ? "#FF9800"
+  //   : moves >= upperLimit
+  //   ? "#F44336"
+  //   : "#ffffff";
+
+  // console.log(userMods.holiday[0]?.holiday)
+  // const initialHolidayState: boolean =  (userMods.holiday[0]?.holiday) || (day.holiday && typeof day.holiday !== 'boolean' && day.holiday.description)
+  // const initialHolidayDescription = userMods.holiday[0].holidayDescription
+  //   ? userMods.holiday[0].holidayDescription
+  //   : typeof day.holiday !== 'boolean' && day.holiday.description
+  //   ? day.holiday.description
+  //   : "";
+
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [holidayDescription, setHolidayDescription] = useState<string>("");
   const [holiday, setHoliday] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>();
+  const [editComponent, setEditComponent] = useState<string>("");
 
   const [changing, setChanging] = useState<{
     holiday: boolean;
@@ -81,7 +129,6 @@ export default function DayStatComponent({
   });
   const [state, setState] = useState<{
     arrowRef: any | null;
-    editComponent: string;
     movesMessage: string;
     lowerLimit: number;
     upperLimit: number;
@@ -93,13 +140,11 @@ export default function DayStatComponent({
     trl: number;
     deletingMoveValues: boolean;
     infoMessageForDay: string;
-    showDFWarning: boolean;
   }>({
     arrowRef: null,
-    editComponent: "",
-    movesMessage: "",
-    lowerLimit: 0,
-    upperLimit: 0,
+    movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
+    upperLimit: initialLimits.lower,
+    lowerLimit: initialLimits.upper,
     ttl: 10,
     del: 0,
     rtn: 0,
@@ -108,25 +153,11 @@ export default function DayStatComponent({
     trl: 0,
     deletingMoveValues: false,
     infoMessageForDay: "",
-    showDFWarning: false,
   });
 
-  useEffect(() => {
-    // Set warning
-    if (
-      day.limits &&
-      day.limits[0][day.dateBroken[0].toLowerCase()].max &&
-      day.data &&
-      day.data.dfCount &&
-      (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
-      day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3
-    ) {
-      setState({ 
-        ...state,
-        showDFWarning: true,
-      });
-    }
+  const isDayClosed = holiday || holidayDescription !== "";
 
+  useEffect(() => {
     // Set Holiday
     if (
       userMods &&
@@ -148,137 +179,20 @@ export default function DayStatComponent({
       setHoliday(true);
       setHolidayDescription(day.holiday.description);
     }
-
-    // Set message
-    if (
-      userMods &&
-      userMods.message &&
-      userMods.message.length &&
-      userMods.message[0].message
-    ) {
-      setState({ 
-        ...state,
-        movesMessage: userMods.message[0].message,
-      });
-    }
-
-    // Set limits
-    if (userMods && userMods.limits) {
-      setState({
-        ...state,
-        upperLimit: parseInt(userMods.limits[0].upper),
-        lowerLimit: parseInt(userMods.limits[0].lower),
-      });
-    } else if (day.limits && day.limits.length) {
-      setState({
-        ...state,
-        upperLimit: day.limits[0][day.dateBroken[0].toLowerCase()].max,
-        lowerLimit: day.limits[0][day.dateBroken[0].toLowerCase()].min,
-      });
-    }
-
   }, []);
 
-  const hideAdjustmentDialog = () => {
-    setState({
-      ...state,
-      editComponent: "",
-    });
+  const hideAdjustmentDialog = useCallback(() => {
+    setEditComponent("");
     setOpenDialog(false);
     setUserEditingTruckNorrisData(false);
-  };
+  }, []);
 
-  const showAdjustmentDialog = (component: "date" | "moves" | "limits" | "del") => {
-    setUserEditingTruckNorrisData(true);
+  const handleLimitChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setState({ 
       ...state,
-      editComponent: component,
+      [event.target.id]: event.target.value,
     });
-    setOpenDialog(true);
-  };
-
-  const handleHolidayChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      setHoliday(event.target.checked);
-    } else {
-      setHoliday(event.target.checked);
-      setHolidayDescription("");
-    };
-  };
-
-  const handleHolidayChangeClick = () => {
-    const data = {
-      type: "holiday",
-      holiday: holiday,
-      holidayDescription: holidayDescription,
-    };
-    setChanging({ 
-      ...changing,
-      holiday: true,
-    });
-    sendDataToApi(data);
-  };
-
-  const handleMovesMessageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setState({ 
-      ...state,
-      movesMessage: event.target.value,
-    });
-  };
-
-  const handleMovesMessageChangeClick = () => {
-    setChanging({ 
-      ...changing,
-      message: true,
-    });
-    const data = {
-      type: "message",
-      message: state.movesMessage !== "" ? state.movesMessage : "N/A",
-    };
-    sendDataToApi(data);
-  };
-
-  const handleLimitChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setState({ 
-      ...state,
-      [event.target.id]: event.target.value });
-  };
-
-  const handleLimitsChangeClick = () => {
-    const data = {
-      type: "limits",
-      upper: state.upperLimit,
-      lower: state.lowerLimit,
-    };
-    setChanging({
-      ...changing,
-      limits: true,
-    });
-    sendDataToApi(data);
-  };
-
-  const handleInfoMessageClick = () => {
-    const data = {
-      type: "infoMsg",
-      message: state.infoMessageForDay,
-    };
-    setState({ 
-      ...state,
-      infoMessageForDay: "",
-    });
-    setChanging({
-      ...changing,
-      holiday: true,
-    })
-    sendDataToApi(data);
-  };
-
-  const handleMoveValueChanges = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: "del" | "rtn" | "am" | "pm" | "trl") => {
-    setState({ 
-      ...state,
-      [name]: event.target.value,
-    });
-  };
+  }, []);
 
   const handleUserAddedValuesChangeClick = () => {
     let ttl = 0;
@@ -335,9 +249,9 @@ export default function DayStatComponent({
     sendDataToApi(data);
   };
 
-  const handleSnackClose = () => {
+  const handleSnackClose = useCallback(() => {
     setSnackbarMessage(undefined);
-  };
+  }, []);
 
   const sendDataToApi = (data: any) => {
     // Add user data and time
@@ -374,17 +288,10 @@ export default function DayStatComponent({
       });
   };
 
-  const isDayClosed = () => {
-    return (
-      holiday ||
-      holidayDescription !== ""
-    );
-  };
-
   /**
    * Finds the correct background color for the moves component
    */
-   const getBackgroundColor = () => {
+  const getBackgroundColor = () => {
     let color = "#ffffff"; // more than 2/3 of upper limit and less than lower limit
     // Get the max limit for the day
     if (day && day.dateBroken[0].toLowerCase() !== "sun") {
@@ -404,7 +311,6 @@ export default function DayStatComponent({
         parseInt(userMods.limits[0].lower) > 0
           ? parseInt(userMods.limits[0].lower)
           : day.limits[0][day.dateBroken[0].toLowerCase()].min;
-      const moves = calculateMoves();
 
       if (moves <= Math.round((upperLimit * 2) / 3)) {
         // healthy
@@ -421,34 +327,6 @@ export default function DayStatComponent({
     }
 
     return color;
-  };
-
-  const calculateMoves = () => {
-    let moves = 0;
-    if (day.data && day.data.pickup && day.data.pickup > 0) {
-      moves += day.data.pickup;
-    }
-    if (day.data && day.data.delivery && day.data.delivery > 0) {
-      moves += day.data.delivery;
-    }
-
-    let userSum = 0;
-
-    //check for user settings
-    if (
-      userMods &&
-      userMods.values &&
-      userMods.values.length
-    ) {
-      // Loop through each setting and add values if ttl is not expired
-      const currentTime = moment().valueOf();
-      for (let value of userMods.values) {
-        if (value.ttl >= currentTime) {
-          userSum += value.del + value.rtn;
-        }
-      }
-    }
-    return moves + userSum;
   };
 
   const handleInfoMessageDeleteClick = (id: string) => {
@@ -812,7 +690,7 @@ export default function DayStatComponent({
       className={classes.root}
       style={
         hasUserLockedData() ||
-        (isDayClosed() && day.dateBroken[0].toLowerCase() !== "sun")
+        (isDayClosed && day.dateBroken[0].toLowerCase() !== "sun")
           ? {
               flexGrow: 1,
               background: "#808080",
@@ -876,7 +754,11 @@ export default function DayStatComponent({
               item
               xs={12}
               sm={2}
-              onClick={() => showAdjustmentDialog("date")}
+              onClick={() => {
+                setUserEditingTruckNorrisData(true);
+                setEditComponent("date");
+                setOpenDialog(true);
+              }}
             >
               <div className={classes.dayComponent}>
                 <div className={classes.spacer}></div>
@@ -899,7 +781,11 @@ export default function DayStatComponent({
             item
             xs={4}
             sm={2}
-            onClick={() => showAdjustmentDialog("date")}
+            onClick={() => {
+              setUserEditingTruckNorrisData(true);
+              setEditComponent("date");
+              setOpenDialog(true);
+            }}
           >
             <div className={classes.dayComponent}>
               <div className={classes.spacer}></div>
@@ -917,7 +803,11 @@ export default function DayStatComponent({
             item
             xs={4}
             sm={3}
-            onClick={() => showAdjustmentDialog("moves")}
+            onClick={() => {
+              setUserEditingTruckNorrisData(true);
+              setEditComponent("moves");
+              setOpenDialog(true);
+            }}
           >
             <Grid
               container
@@ -940,7 +830,7 @@ export default function DayStatComponent({
                         : "#595959",
                   }}
                 >
-                  {!isDayClosed() &&
+                  {!isDayClosed &&
                   day.dateBroken[0].toLowerCase() !== "sun"
                     ? getInfoMessage().toUpperCase()
                     : null}
@@ -949,7 +839,7 @@ export default function DayStatComponent({
 
               <Grid item xs={12} sm={12}>
                 <span className={classes.date}>
-                  {calculateMoves()}
+                  {moves}
                 </span>{" "}
                 <br />
                 <span
@@ -971,9 +861,13 @@ export default function DayStatComponent({
           <Grid item xs={4} sm={2}>
             <div
               className={classes.dayComponent}
-              onClick={() => showAdjustmentDialog("limits")}
+              onClick={() => {
+                setUserEditingTruckNorrisData(true);
+                setEditComponent("limits");
+                setOpenDialog(true);
+              }}
             >
-              {!isDayClosed() &&
+              {!isDayClosed &&
               day.dateBroken[0].toLowerCase() !== "sun" ? (
                 <div>
                   <div className={classes.lowerText}>Lower</div>
@@ -1556,12 +1450,16 @@ export default function DayStatComponent({
 
                   <Grid item xs={2} sm={2}>
                     {(!openDialog ||
-                      state.editComponent !== "del") &&
-                    !isDayClosed() &&
+                      editComponent !== "del") &&
+                    !isDayClosed &&
                     day.dateBroken[0].toLowerCase() !== "sun" ? (
                       <AddIcon
                         className={classes.icon}
-                        onClick={() => showAdjustmentDialog("del")}
+                        onClick={() => {
+                          setUserEditingTruckNorrisData(true);
+                          setEditComponent("del");
+                          setOpenDialog(true);
+                          }}
                       />
                     ) : (
                       null
@@ -1571,7 +1469,7 @@ export default function DayStatComponent({
                 </Grid>
               </Grid>
               <Grid item xs={12} sm={12} className={classes.dftext}>
-                {state.showDFWarning ? "NO MORE DF" : ""}
+                {showDFWarning ? "NO MORE DF" : ""}
               </Grid>
             </Grid>
           </Grid>
@@ -1582,7 +1480,7 @@ export default function DayStatComponent({
           <Grid item xs={12} sm={12} className={classes.adjustmentContainer}>
             <Grid container spacing={2}>
               <Grid item xs={11} sm={11}>
-                {state.editComponent === "del"
+                {editComponent === "del"
                   ? (changing.moveValues ? (
                       <CircularProgress className={classes.progress} />
                     ) : (
@@ -1599,7 +1497,10 @@ export default function DayStatComponent({
                                   type="number"
                                   id="del"
                                   onChange={(event) =>
-                                    handleMoveValueChanges(event, "del")
+                                    setState({ 
+                                      ...state,
+                                      del: parseInt(event.target.value),
+                                    })
                                   }
                                   InputProps={{
                                     endAdornment: (
@@ -1622,7 +1523,10 @@ export default function DayStatComponent({
                                   type="number"
                                   id="rtn"
                                   onChange={(event) =>
-                                    handleMoveValueChanges(event, "rtn")
+                                    setState({ 
+                                      ...state,
+                                      rtn: parseInt(event.target.value),
+                                    })
                                   }
                                   InputProps={{
                                     endAdornment: (
@@ -1657,7 +1561,10 @@ export default function DayStatComponent({
                                   type="number"
                                   id="am"
                                   onChange={(event) =>
-                                    handleMoveValueChanges(event, "am")
+                                    setState({ 
+                                      ...state,
+                                      am: parseInt(event.target.value),
+                                    })
                                   }
                                   InputProps={{
                                     endAdornment: (
@@ -1680,7 +1587,10 @@ export default function DayStatComponent({
                                   type="number"
                                   id="pm"
                                   onChange={(event) =>
-                                    handleMoveValueChanges(event, "pm")
+                                    setState({ 
+                                      ...state,
+                                      pm: parseInt(event.target.value),
+                                    })
                                   }
                                   InputProps={{
                                     endAdornment: (
@@ -1716,13 +1626,16 @@ export default function DayStatComponent({
                                   type="number"
                                   id="tlr"
                                   onChange={(event) =>
-                                    handleMoveValueChanges(event, "trl")
+                                    setState({ 
+                                      ...state,
+                                      trl: parseInt(event.target.value),
+                                    })
                                   }
                                   InputProps={{
                                     endAdornment: (
-                                    <InputAdornment position="end">
-                                      <IncreaseDecreaseIcon />
-                                    </InputAdornment>
+                                      <InputAdornment position="end">
+                                        <IncreaseDecreaseIcon />
+                                      </InputAdornment>
                                     )
                                   }}
                                 />
@@ -1786,7 +1699,7 @@ export default function DayStatComponent({
                       </div>
                     ))
                   : null}
-                {state.editComponent === "date"
+                {editComponent === "date"
                   ? (
                     <>
                       {changing.holiday ? (
@@ -1800,7 +1713,14 @@ export default function DayStatComponent({
                                 control={
                                   <Checkbox
                                     checked={holiday}
-                                    onChange={handleHolidayChange}
+                                    onChange={(event) => {
+                                      if (event.target.checked) {
+                                        setHoliday(event.target.checked);
+                                      } else {
+                                        setHoliday(event.target.checked);
+                                        setHolidayDescription("");
+                                      };
+                                    }}
                                     value="holiday"
                                   />
                                 }
@@ -1815,9 +1735,7 @@ export default function DayStatComponent({
                                 multiline={true}
                                 className={classes.textField}
                                 value={holidayDescription}
-                                onChange={(event) => {
-                                  setHolidayDescription(event.target.value);
-                                }}
+                                onChange={(event) => setHolidayDescription(event.target.value)}
                                 rows={1}
                                 rowsMax={10}
                                 margin="normal"
@@ -1830,7 +1748,18 @@ export default function DayStatComponent({
                                 size="small"
                                 className={classes.holidaySaveBtn}
                                 disabled={changing.holiday}
-                                onClick={handleHolidayChangeClick}
+                                onClick={(ev) => {
+                                  const data = {
+                                    type: "holiday",
+                                    holiday: holiday,
+                                    holidayDescription: holidayDescription,
+                                  };
+                                  setChanging({ 
+                                    ...changing,
+                                    holiday: true,
+                                  });
+                                  sendDataToApi(data);
+                                }}
                               >
                                 <SaveIcon
                                   className={classNames(
@@ -1871,7 +1800,21 @@ export default function DayStatComponent({
                                 color="secondary"
                                 size="small"
                                 className={classes.holidaySaveBtn}
-                                onClick={handleInfoMessageClick}
+                                onClick={() => {
+                                  const data = {
+                                    type: "infoMsg",
+                                    message: state.infoMessageForDay,
+                                  };
+                                  setState({ 
+                                    ...state,
+                                    infoMessageForDay: "",
+                                  });
+                                  setChanging({
+                                    ...changing,
+                                    holiday: true,
+                                  })
+                                  sendDataToApi(data);
+                                }}
                               >
                                 <SaveIcon
                                   className={classNames(
@@ -1916,7 +1859,7 @@ export default function DayStatComponent({
                       )}
                     </>
                   ) : null}
-                {state.editComponent === "moves"
+                {editComponent === "moves"
                   ? (
                     <>
                       {changing.message ? (
@@ -1930,7 +1873,12 @@ export default function DayStatComponent({
                                 label="Message"
                                 className={classes.textField}
                                 value={state.movesMessage}
-                                onChange={handleMovesMessageChange}
+                                onChange={(event) => {
+                                  setState({ 
+                                    ...state,
+                                    movesMessage: event.target.value,
+                                  });
+                                }}
                                 margin="normal"
                                 inputProps={{ maxLength: 15 }}
                                 helperText={"15 Characters Max"}
@@ -1942,7 +1890,17 @@ export default function DayStatComponent({
                                 color="secondary"
                                 size="small"
                                 className={classes.holidaySaveBtn}
-                                onClick={handleMovesMessageChangeClick}
+                                onClick={() => {
+                                  setChanging({ 
+                                    ...changing,
+                                    message: true,
+                                  });
+                                  const data = {
+                                    type: "message",
+                                    message: state.movesMessage !== "" ? state.movesMessage : "N/A",
+                                  };
+                                  sendDataToApi(data);
+                                }}
                               >
                                 <SaveIcon
                                   className={classNames(classes.leftIcon, classes.iconSmall)}
@@ -2029,7 +1987,7 @@ export default function DayStatComponent({
                     </>
                   )
                   : null}
-                {state.editComponent === "limits"
+                {editComponent === "limits"
                   ? (
                     <>
                       {changing.limits ? (
@@ -2066,7 +2024,18 @@ export default function DayStatComponent({
                                   color="secondary"
                                   size="small"
                                   className={classes.holidaySaveBtn}
-                                  onClick={handleLimitsChangeClick}
+                                  onClick={() => {
+                                    const data = {
+                                      type: "limits",
+                                      upper: state.upperLimit,
+                                      lower: state.lowerLimit,
+                                    };
+                                    setChanging({
+                                      ...changing,
+                                      limits: true,
+                                    });
+                                    sendDataToApi(data);
+                                  }}
                                 >
                                   <SaveIcon
                                     className={classNames(
@@ -2091,7 +2060,7 @@ export default function DayStatComponent({
                 />
               </Grid>
             </Grid>
-            {state.editComponent === "del" ? (
+            {editComponent === "del" ? (
               <Typography
                 className={classes.lockTimeDesc}
                 variant="caption"
@@ -2189,7 +2158,7 @@ const getZone3n4ProcessedArray = (zoneList: string[]) => {
 // Styles
 // ============================================================================
 
-const GRID_SPACING = 3;
+const GRID_SPACING = 2;
 const useStyles = makeStyles(theme => ({
   root: {
     flexGrow: 1,
