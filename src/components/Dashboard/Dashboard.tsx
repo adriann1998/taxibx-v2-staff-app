@@ -24,7 +24,7 @@ import TaxiBoxLogo from './../../assets/images/Logo.svg';
 
 // Components
 import ListItems from './ListItems';
-import Calculator from './../Calculator/Calculator';
+import Calculator from '../Calculator/Calculator';
 import TruckNorris from './../TruckNorris/TruckNorris';
 import ZoneCalculator from './../ZoneCalculator/ZoneCalculator';
 import { authContext } from '../../adalConfig';

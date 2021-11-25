@@ -56,11 +56,16 @@ export default function DayStatComponent({
   const user: string = authContext._user.profile.unique_name;
   //@ts-ignore
   const ip: string = authContext._user.profile.ipaddr;
+  
+  // Constant variables
+  const activeReservations = userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? value : undefined) : [];
+  const clientsCount: number = day.data && day.data.customers && day.data.customers.length ? day.data.customers.length : 0;
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [holidayDescription, setHolidayDescription] = useState<string>("");
   const [holiday, setHoliday] = useState<boolean>(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string>("");
+  const [snackbarMessage, setSnackbarMessage] = useState<string>();
+
   const [changing, setChanging] = useState<{
     holiday: boolean;
     message: boolean;
@@ -87,7 +92,6 @@ export default function DayStatComponent({
     pm: number;
     trl: number;
     deletingMoveValues: boolean;
-    open: boolean;
     infoMessageForDay: string;
     showDFWarning: boolean;
   }>({
@@ -103,14 +107,9 @@ export default function DayStatComponent({
     pm: 0,
     trl: 0,
     deletingMoveValues: false,
-    open: false,
     infoMessageForDay: "",
     showDFWarning: false,
   });
-
-  useEffect(() => {
-    console.log(snackbarMessage)
-  }, [snackbarMessage])
 
   useEffect(() => {
     // Set warning
@@ -337,17 +336,7 @@ export default function DayStatComponent({
   };
 
   const handleSnackClose = () => {
-    setState({ 
-      ...state,
-      open: false,
-    });
-  };
-  
-  const handleOpenSnack = () => {
-    setState({ 
-      ...state,
-      open: true,
-    });
+    setSnackbarMessage(undefined);
   };
 
   const sendDataToApi = (data: any) => {
@@ -377,7 +366,6 @@ export default function DayStatComponent({
         setUserEditingTruckNorrisData(false);
         hideAdjustmentDialog();
         // show success message
-        handleOpenSnack();
         setTimeout(() => handleSnackClose(), 1000);
         executeOnce();
       })
@@ -487,8 +475,6 @@ export default function DayStatComponent({
           holiday: false,
         })
         hideAdjustmentDialog();
-        // show success message
-        handleOpenSnack();
         setTimeout(() => handleSnackClose(), 1000);
         executeOnce();
       })
@@ -520,334 +506,12 @@ export default function DayStatComponent({
         });
         setUserEditingTruckNorrisData(false);
         hideAdjustmentDialog();
-        // show success message
-        handleOpenSnack();
         setTimeout(() => handleSnackClose(), 1000);
         executeOnce();
       })
       .catch((error) => {
         console.log(error);
       });
-  };
-
-  /**
-   * COMPONENTS ====================
-   */
-
-  const DelComponent = () => {
-    return changing.moveValues ? (
-      <CircularProgress className={classes.progress} />
-    ) : (
-      <div>
-        <br />
-        <Grid container spacing={2} className={classes.adjustmentControls}>
-          <Grid item xs={12} sm={12}>
-            <Grid container spacing={0}>
-              <Grid item xs={4} sm={4}>
-                <div className={classes.delText}>DEL</div>
-              </Grid>
-              <Grid item xs={8} sm={8}>
-                <TextField
-                  type="number"
-                  id="del"
-                  onChange={(event) =>
-                    handleMoveValueChanges(event, "del")
-                  }
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12} sm={12}>
-            <Grid container spacing={0}>
-              <Grid item xs={4} sm={4}>
-                <div className={classes.delText}>RTN</div>
-              </Grid>
-              <Grid item xs={8} sm={8}>
-                <TextField
-                  type="number"
-                  id="rtn"
-                  onChange={(event) =>
-                    handleMoveValueChanges(event, "rtn")
-                  }
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12} sm={12}>
-            <div
-              style={{
-                maxWidth: 500,
-                marginLeft: 12,
-                marginTop: 12,
-                marginBottom: 8,
-                background: "#ffdd33",
-                height: 2,
-              }}
-            ></div>
-          </Grid>
-          <Grid item xs={12} sm={12}>
-            <Grid container spacing={0}>
-              <Grid item xs={4} sm={4}>
-                <div className={classes.delText}>AM</div>
-              </Grid>
-              <Grid item xs={8} sm={8}>
-                <TextField
-                  type="number"
-                  id="am"
-                  onChange={(event) =>
-                    handleMoveValueChanges(event, "am")
-                  }
-                  InputProps={{
-                    endAdornment: (
-                    <InputAdornment position="end">
-                      <IncreaseDecreaseIcon />
-                    </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12} sm={12}>
-            <Grid container spacing={0}>
-              <Grid item xs={4} sm={4}>
-                <div className={classes.delText}>PM</div>
-              </Grid>
-              <Grid item xs={8} sm={8}>
-                <TextField
-                  type="number"
-                  id="pm"
-                  onChange={(event) =>
-                    handleMoveValueChanges(event, "pm")
-                  }
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IncreaseDecreaseIcon />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12} sm={12}>
-            <div
-              style={{
-                maxWidth: 500,
-                marginLeft: 12,
-                marginTop: 12,
-                marginBottom: 8,
-                background: "#ffdd33",
-                height: 2,
-              }}
-            ></div>
-          </Grid>
-
-          <Grid item xs={12} sm={12}>
-            <Grid container spacing={0}>
-              <Grid item xs={4} sm={4}>
-                <div className={classes.delText}>TRL</div>
-              </Grid>
-              <Grid item xs={8} sm={8}>
-                <TextField
-                  type="number"
-                  id="tlr"
-                  onChange={(event) =>
-                    handleMoveValueChanges(event, "trl")
-                  }
-                  InputProps={{
-                    endAdornment: (
-                    <InputAdornment position="end">
-                      <IncreaseDecreaseIcon />
-                    </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-        <Grid container spacing={GRID_SPACING}>
-          <Grid item xs={6} sm={6}>
-            <div>
-              <InputLabel htmlFor="timeToLive">Lock Time</InputLabel>
-              <Select
-                native
-                value={state.ttl}
-                onChange={(event) => {
-                  setState({ 
-                    ...state,
-                    ttl: parseInt(event.target.value as string),
-                  })
-                }}
-                inputProps={{
-                  name: "age",
-                  id: "timeToLive",
-                }}
-              >
-                <option value="" />
-                <option value={10}>10 Mins</option>
-                <option value={20}>20 Mins</option>
-                <option value={30}>30 Mins</option>
-                <option value={60}>1 Hour</option>
-                <option value={120}>2 Hours</option>
-                <option value={360}>6 Hours</option>
-                <option value={720}>12 Hours</option>
-                <option value={1440}>24 Hours</option>
-              </Select>
-            </div>
-          </Grid>
-          <Grid item xs={2} sm={2}>
-            <Button
-              variant="contained"
-              color="secondary"
-              size="small"
-              disabled={
-                state.am === 0 &&
-                state.pm === 0 &&
-                state.del === 0 &&
-                state.rtn === 0 &&
-                state.trl === 0
-              }
-              className={classes.holidaySaveBtn}
-              onClick={handleUserAddedValuesChangeClick}
-            >
-              <SaveIcon
-                className={classNames(classes.leftIcon, classes.iconSmall)}
-              />
-              Save
-            </Button>
-          </Grid>
-          <Grid item xs={2} sm={2}></Grid>
-        </Grid>
-      </div>
-    );
-  };
-
-  const getReservations = () => {
-    let modsComponent = null;
-
-    if (
-      userMods &&
-      userMods.values &&
-      userMods.values.length
-    ) {
-      // Check whether there are active reservations
-      const activeReservations = userMods.values.filter((value) => {
-        if (value.ttl >= moment().valueOf()) {
-          return value;
-        }
-      });
-      if (activeReservations && activeReservations.length) {
-        //console.log(activeReservations)
-        modsComponent = activeReservations.map((value) => {
-          return (
-            <Grid key={value.user + value.ttl} container spacing={GRID_SPACING}>
-              <Grid item xs={11} sm={11}>
-                <div style={{ fontSize: 12 }}>
-                  {value.am > 0 ? (
-                    <strong>AM: {value.am} &nbsp;</strong>
-                  ) : (
-                    false
-                  )}
-                  {value.del > 0 ? (
-                    <strong>DEL: {value.del}&nbsp;</strong>
-                  ) : (
-                    false
-                  )}
-                  {value.pm > 0 ? <strong>PM: {value.pm}&nbsp;</strong> : false}
-                  {value.rtn > 0 ? (
-                    <strong>RTN: {value.rtn}&nbsp;</strong>
-                  ) : (
-                    false
-                  )}
-                  {value.trl > 0 ? (
-                    <strong>TRL: {value.trl} &nbsp;</strong>
-                  ) : (
-                    false
-                  )}
-                  <br />
-                  <span style={{ fontSize: 11 }}>
-                    On: {value.time}&nbsp; By:{" "}
-                    {value.user.split("@")[0].toUpperCase()}&nbsp;
-                    <strong>Expires {moment(value.ttl).fromNow()}</strong>
-                  </span>
-                  <br />
-                  <br />
-                </div>
-              </Grid>
-              <Grid item xs={1} sm={1}>
-                {value.user === user ? (
-                  <DeleteIcon
-                    onClick={() => handleDeleteReservationClick(value.did)}
-                  />
-                ) : (
-                  false
-                )}
-              </Grid>
-            </Grid>
-          );
-        });
-      } else {
-        modsComponent = (
-          <Typography variant="caption" gutterBottom>
-            No reservations
-          </Typography>
-        );
-      }
-    } else {
-      modsComponent = (
-        <Typography variant="caption" gutterBottom>
-          No reservations
-        </Typography>
-      );
-    }
-
-    return modsComponent;
-  };
-
-  const SnackBarNotification = () => {
-    return snackbarMessage && 
-      snackbarMessage !== "" ? (
-        <Snackbar
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "left",
-          }}
-          open={state.open}
-          autoHideDuration={6000}
-          ContentProps={{
-            "aria-describedby": "message-id",
-          }}
-          message={<span id="message-id">{snackbarMessage}</span>}
-          action={[
-            <IconButton
-              key="close"
-              aria-label="Close"
-              color="inherit"
-              className={classes.close}
-              onClick={handleSnackClose}
-            >
-              <CloseIcon />
-            </IconButton>,
-          ]}
-        />
-      ) : null;
   };
 
   /**
@@ -1141,37 +805,6 @@ export default function DayStatComponent({
       }
     }
     return zoneList;
-  };
-
-  /**
-   * Calculates numbers of same Zone 3 Suburbs if there are any
-   */
-  const getZone3n4ProcessedArray = (zoneList: string[]) => {
-    let processed: {[key: string]: number} = {};
-    for (let suburb of zoneList) {
-      if (
-        Object.keys(processed).length === 0 ||
-        (Object.keys(processed).length > 0 && !processed[suburb])
-      ) {
-        processed[suburb] = 1;
-      } else {
-        // increment
-        processed[suburb]++;
-      }
-    }
-    return processed;
-  };
-
-  /**
-   *  Returns the unique number of clients
-   */
-  const getClients = () => {
-    if (day.data && day.data.customers && day.data.customers.length) {
-      const unique = new Set(day.data.customers);
-      return unique.size;
-    } else {
-      return 0;
-    }
   };
 
   return day.dateBroken[0] !== "Sun" ? (
@@ -1883,7 +1516,7 @@ export default function DayStatComponent({
                   ) : (
                     null
                   )}
-                  {getClients() > 0 ? (
+                  {clientsCount > 0 ? (
                     <Grid item xs={2} sm={2}>
                       <Tooltip
                         placement="top"
@@ -1891,9 +1524,9 @@ export default function DayStatComponent({
                           <React.Fragment>
                             <span className={classes.tooltipText}>
                               <strong>
-                                {getClients() === 1
-                                  ? getClients() + " Customer"
-                                  : getClients() + " Customers"}
+                                {clientsCount === 1
+                                  ? clientsCount + " Customer"
+                                  : clientsCount + " Customers"}
                               </strong>
                             </span>
                             <span
@@ -1950,7 +1583,208 @@ export default function DayStatComponent({
             <Grid container spacing={2}>
               <Grid item xs={11} sm={11}>
                 {state.editComponent === "del"
-                  ? <DelComponent />
+                  ? (changing.moveValues ? (
+                      <CircularProgress className={classes.progress} />
+                    ) : (
+                      <div>
+                        <br />
+                        <Grid container spacing={2} className={classes.adjustmentControls}>
+                          <Grid item xs={12} sm={12}>
+                            <Grid container spacing={0}>
+                              <Grid item xs={4} sm={4}>
+                                <div className={classes.delText}>DEL</div>
+                              </Grid>
+                              <Grid item xs={8} sm={8}>
+                                <TextField
+                                  type="number"
+                                  id="del"
+                                  onChange={(event) =>
+                                    handleMoveValueChanges(event, "del")
+                                  }
+                                  InputProps={{
+                                    endAdornment: (
+                                      <InputAdornment position="end">
+                                        <IncreaseDecreaseIcon />
+                                      </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Grid>
+                          <Grid item xs={12} sm={12}>
+                            <Grid container spacing={0}>
+                              <Grid item xs={4} sm={4}>
+                                <div className={classes.delText}>RTN</div>
+                              </Grid>
+                              <Grid item xs={8} sm={8}>
+                                <TextField
+                                  type="number"
+                                  id="rtn"
+                                  onChange={(event) =>
+                                    handleMoveValueChanges(event, "rtn")
+                                  }
+                                  InputProps={{
+                                    endAdornment: (
+                                      <InputAdornment position="end">
+                                        <IncreaseDecreaseIcon />
+                                      </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Grid>
+                          <Grid item xs={12} sm={12}>
+                            <div
+                              style={{
+                                maxWidth: 500,
+                                marginLeft: 12,
+                                marginTop: 12,
+                                marginBottom: 8,
+                                background: "#ffdd33",
+                                height: 2,
+                              }}
+                            ></div>
+                          </Grid>
+                          <Grid item xs={12} sm={12}>
+                            <Grid container spacing={0}>
+                              <Grid item xs={4} sm={4}>
+                                <div className={classes.delText}>AM</div>
+                              </Grid>
+                              <Grid item xs={8} sm={8}>
+                                <TextField
+                                  type="number"
+                                  id="am"
+                                  onChange={(event) =>
+                                    handleMoveValueChanges(event, "am")
+                                  }
+                                  InputProps={{
+                                    endAdornment: (
+                                    <InputAdornment position="end">
+                                      <IncreaseDecreaseIcon />
+                                    </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Grid>
+                          <Grid item xs={12} sm={12}>
+                            <Grid container spacing={0}>
+                              <Grid item xs={4} sm={4}>
+                                <div className={classes.delText}>PM</div>
+                              </Grid>
+                              <Grid item xs={8} sm={8}>
+                                <TextField
+                                  type="number"
+                                  id="pm"
+                                  onChange={(event) =>
+                                    handleMoveValueChanges(event, "pm")
+                                  }
+                                  InputProps={{
+                                    endAdornment: (
+                                      <InputAdornment position="end">
+                                        <IncreaseDecreaseIcon />
+                                      </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Grid>
+                          <Grid item xs={12} sm={12}>
+                            <div
+                              style={{
+                                maxWidth: 500,
+                                marginLeft: 12,
+                                marginTop: 12,
+                                marginBottom: 8,
+                                background: "#ffdd33",
+                                height: 2,
+                              }}
+                            ></div>
+                          </Grid>
+                
+                          <Grid item xs={12} sm={12}>
+                            <Grid container spacing={0}>
+                              <Grid item xs={4} sm={4}>
+                                <div className={classes.delText}>TRL</div>
+                              </Grid>
+                              <Grid item xs={8} sm={8}>
+                                <TextField
+                                  type="number"
+                                  id="tlr"
+                                  onChange={(event) =>
+                                    handleMoveValueChanges(event, "trl")
+                                  }
+                                  InputProps={{
+                                    endAdornment: (
+                                    <InputAdornment position="end">
+                                      <IncreaseDecreaseIcon />
+                                    </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Grid>
+                        </Grid>
+                        <Grid container spacing={GRID_SPACING}>
+                          <Grid item xs={6} sm={6}>
+                            <div>
+                              <InputLabel htmlFor="timeToLive">Lock Time</InputLabel>
+                              <Select
+                                native
+                                value={state.ttl}
+                                onChange={(event) => {
+                                  setState({ 
+                                    ...state,
+                                    ttl: parseInt(event.target.value as string),
+                                  })
+                                }}
+                                inputProps={{
+                                  name: "age",
+                                  id: "timeToLive",
+                                }}
+                              >
+                                <option value="" />
+                                <option value={10}>10 Mins</option>
+                                <option value={20}>20 Mins</option>
+                                <option value={30}>30 Mins</option>
+                                <option value={60}>1 Hour</option>
+                                <option value={120}>2 Hours</option>
+                                <option value={360}>6 Hours</option>
+                                <option value={720}>12 Hours</option>
+                                <option value={1440}>24 Hours</option>
+                              </Select>
+                            </div>
+                          </Grid>
+                          <Grid item xs={2} sm={2}>
+                            <Button
+                              variant="contained"
+                              color="secondary"
+                              size="small"
+                              disabled={
+                                state.am === 0 &&
+                                state.pm === 0 &&
+                                state.del === 0 &&
+                                state.rtn === 0 &&
+                                state.trl === 0
+                              }
+                              className={classes.holidaySaveBtn}
+                              onClick={handleUserAddedValuesChangeClick}
+                            >
+                              <SaveIcon
+                                className={classNames(classes.leftIcon, classes.iconSmall)}
+                              />
+                              Save
+                            </Button>
+                          </Grid>
+                          <Grid item xs={2} sm={2}></Grid>
+                        </Grid>
+                      </div>
+                    ))
                   : null}
                 {state.editComponent === "date"
                   ? (
@@ -2131,7 +1965,62 @@ export default function DayStatComponent({
                               {state.deletingMoveValues ? (
                                 <CircularProgress className={classes.progress} />
                               ) : (
-                                getReservations()
+                                userMods &&
+                                userMods.values &&
+                                userMods.values.length &&
+                                activeReservations && 
+                                activeReservations.length ? (
+                                  activeReservations.map((value) => (
+                                    <Grid key={value.user + value.ttl} container spacing={GRID_SPACING}>
+                                      <Grid item xs={11} sm={11}>
+                                        <div style={{ fontSize: 12 }}>
+                                          {value.am > 0 ? (
+                                            <strong>AM: {value.am} &nbsp;</strong>
+                                          ) : (
+                                            false
+                                          )}
+                                          {value.del > 0 ? (
+                                            <strong>DEL: {value.del}&nbsp;</strong>
+                                          ) : (
+                                            false
+                                          )}
+                                          {value.pm > 0 ? <strong>PM: {value.pm}&nbsp;</strong> : false}
+                                          {value.rtn > 0 ? (
+                                            <strong>RTN: {value.rtn}&nbsp;</strong>
+                                          ) : (
+                                            false
+                                          )}
+                                          {value.trl > 0 ? (
+                                            <strong>TRL: {value.trl} &nbsp;</strong>
+                                          ) : (
+                                            false
+                                          )}
+                                          <br />
+                                          <span style={{ fontSize: 11 }}>
+                                            On: {value.time}&nbsp; By:{" "}
+                                            {value.user.split("@")[0].toUpperCase()}&nbsp;
+                                            <strong>Expires {moment(value.ttl).fromNow()}</strong>
+                                          </span>
+                                          <br />
+                                          <br />
+                                        </div>
+                                      </Grid>
+                                      <Grid item xs={1} sm={1}>
+                                        {value.user === user ? (
+                                          <DeleteIcon
+                                            onClick={() => handleDeleteReservationClick(value.did)}
+                                          />
+                                        ) : (
+                                          false
+                                        )}
+                                      </Grid>
+                                    </Grid>
+                                  ))
+                                ) : (
+                                  <Typography variant="caption" gutterBottom>
+                                    No reservations
+                                  </Typography>
+                                )
                               )}
                             </Grid>
                           </Grid>
@@ -2220,7 +2109,31 @@ export default function DayStatComponent({
           null
         )}
       </Grid>
-      <SnackBarNotification />
+      {snackbarMessage && snackbarMessage !== "" ? (
+        <Snackbar
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          open={snackbarMessage !== "" && snackbarMessage !== undefined}
+          autoHideDuration={6000}
+          ContentProps={{
+            "aria-describedby": "message-id",
+          }}
+          message={<span id="message-id">{snackbarMessage}</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              className={classes.close}
+              onClick={handleSnackClose}
+            >
+              <CloseIcon />
+            </IconButton>,
+          ]}
+        />
+      ) : null}
     </div>
   ) : (
     null
@@ -2252,6 +2165,25 @@ const axiosInstance = axios.create({
     'x-api-key': process.env.REACT_APP_API_KEY as string,
   },
 });
+
+/**
+ * Calculates numbers of same Zone 3 Suburbs if there are any
+ */
+const getZone3n4ProcessedArray = (zoneList: string[]) => {
+  let processed: {[key: string]: number} = {};
+  for (let suburb of zoneList) {
+    if (
+      Object.keys(processed).length === 0 ||
+      (Object.keys(processed).length > 0 && !processed[suburb])
+    ) {
+      processed[suburb] = 1;
+    } else {
+      // increment
+      processed[suburb]++;
+    }
+  }
+  return processed;
+};
 
 // ============================================================================
 // Styles

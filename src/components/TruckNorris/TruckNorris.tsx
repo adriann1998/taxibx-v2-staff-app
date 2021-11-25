@@ -553,4 +553,8 @@ const getISODate = (date: string) => {
   return splittedDate[2] + "-" + splittedDate[1] + "-" + splittedDate[0];
 };
 
+// ============================================================================
+// Export Default
+// ============================================================================
+
 export default TruckNorris;
