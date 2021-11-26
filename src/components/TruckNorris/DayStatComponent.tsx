@@ -4,8 +4,6 @@ import {
   Grid,
   CircularProgress,
   Tooltip,
-  // FormControl,
-  // FormGroup,
   FormControlLabel,
   Checkbox,
   TextField,
@@ -98,6 +96,20 @@ const DayStatComponent = ({
   //   ? day.holiday.description
   //   : "";
 
+  const initialState = {
+    arrowRef: null,
+    movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
+    upperLimit: initialLimits.upper,
+    lowerLimit: initialLimits.lower,
+    ttl: 10,
+    del: 0,
+    rtn: 0,
+    am: 0,
+    pm: 0,
+    trl: 0,
+    deletingMoveValues: false,
+    infoMessageForDay: "",
+  };
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [holidayDescription, setHolidayDescription] = useState<string>("");
@@ -133,20 +145,7 @@ const DayStatComponent = ({
     trl: number;
     deletingMoveValues: boolean;
     infoMessageForDay: string;
-  }>({
-    arrowRef: null,
-    movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
-    upperLimit: initialLimits.upper,
-    lowerLimit: initialLimits.lower,
-    ttl: 10,
-    del: 0,
-    rtn: 0,
-    am: 0,
-    pm: 0,
-    trl: 0,
-    deletingMoveValues: false,
-    infoMessageForDay: "",
-  });
+  }>(initialState);
 
   const isDayClosed = holiday || holidayDescription !== "";
 
@@ -202,7 +201,7 @@ const DayStatComponent = ({
         color = "#F44336";
       };
     };
-
+    if (day.date === '2021-12-18') console.log("hi there")
     setColor(color);
   }, [state.upperLimit, state.lowerLimit]);
 
@@ -245,12 +244,13 @@ const DayStatComponent = ({
           : "";
     };
     setInfoMessage(message);
-  }, [holiday]);
+  }, [holiday, userMods]);
 
   const hideAdjustmentDialog = useCallback(() => {
     setEditComponent("");
     setOpenDialog(false);
     setUserEditingTruckNorrisData(false);
+    setState(initialState);
   }, []);
 
   const handleLimitChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +290,6 @@ const DayStatComponent = ({
         })
         setUserEditingTruckNorrisData(false);
         hideAdjustmentDialog();
-        setInfoMessage(data.message);
         // show success message
         setTimeout(() => handleSnackClose(), 1000);
         executeOnce();

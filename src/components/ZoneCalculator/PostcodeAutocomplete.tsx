@@ -45,7 +45,7 @@ const PostcodeAutocomplete = ({
   };
 
   const onClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    const selectedSuggestion = suggestions.filter(suggestion => suggestion.postcode.hint === event.currentTarget.innerText)[0];
+    const selectedSuggestion = suggestions.filter(suggestion => suggestion.value.hint === event.currentTarget.innerText)[0];
 
     setState({
       ...state,
@@ -55,7 +55,7 @@ const PostcodeAutocomplete = ({
       userInput: event.currentTarget.innerText,
     });
     
-    select(selectedSuggestion.postcode);
+    select(selectedSuggestion.value);
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -69,7 +69,7 @@ const PostcodeAutocomplete = ({
         showSuggestions: false,
         userInput: filteredSuggestions[activeSuggestion].label,
       });
-      select(filteredSuggestions[activeSuggestion].postcode);
+      select(filteredSuggestions[activeSuggestion].value);
     } 
     else if (event.key === 'ArrowUp') {
       if (activeSuggestion === 0) {

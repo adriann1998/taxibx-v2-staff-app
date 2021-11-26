@@ -35,18 +35,7 @@ export interface UserModData {
     time: string;
     user: string;
   }[];
-  values?: {
-    am: number;
-    del: number;
-    did: string;
-    ip: string;
-    pm: number;
-    rtn: number;
-    time: string;
-    trl: number;
-    ttl: number;
-    user: string;
-  }[];
+  values?: UserModValue[];
   holiday: {
     holiday: any;
     holidayDescription: string;
@@ -58,6 +47,19 @@ export interface UserModData {
     time: string
   }[]
 };
+
+export interface UserModValue {
+  am: number;
+  del: number;
+  did: string;
+  ip: string;
+  pm: number;
+  rtn: number;
+  time: string;
+  trl: number;
+  ttl: number;
+  user: string;
+}
 
 export interface CalculationData {
   addedOn: number;
@@ -116,7 +118,7 @@ export interface PostcodeData {
 
 export interface PostcodeOption {
   label: string;
-  postcode: PostcodeData;
+  value: PostcodeData;
 };
 
 export interface CityNoteData {

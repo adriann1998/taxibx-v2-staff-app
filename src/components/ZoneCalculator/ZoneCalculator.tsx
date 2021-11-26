@@ -49,7 +49,7 @@ const ZoneCalculator = () => {
         const modifiedHint = postcode.hint + (postcode.facility === 'SECONDARY' ? ' #' : "")
         return {
           label: modifiedHint, 
-          postcode: {
+          value: {
             ...postcode,
             hint: modifiedHint
           },
@@ -64,7 +64,7 @@ const ZoneCalculator = () => {
         const hint = `${extraCityCodes[i]} - ${extraCityNames[i]}`;
         postcodesOptions.push({
           label: hint,
-          postcode: {
+          value: {
             CBD: true,
             facility: "PRIMARY",
             hint: hint,
@@ -145,7 +145,6 @@ const ZoneCalculator = () => {
             <Grid item xs={6}>
               <PostcodeAutocomplete
                 suggestions={state.postcodes}
-                // selectedPostcode={state.deliveryPostcode}
                 label={"Delivery Postcode/Suburb"}
                 select={(newSelection) => setState({...state, deliveryPostcode: newSelection})}
               />
@@ -153,7 +152,6 @@ const ZoneCalculator = () => {
             <Grid item xs={6}>
               <PostcodeAutocomplete
                 suggestions={state.postcodes}
-                // selectedPostcode={state.redeliveryPostcode}
                 label={"Re-delivery Postcode/Suburb"}
                 select={(newSelection) => setState({...state, redeliveryPostcode: newSelection})}
               />
