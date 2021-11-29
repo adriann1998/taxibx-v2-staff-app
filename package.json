@@ -2,6 +2,7 @@
   "name": "taxibox-v2-staff-app",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://www.taxibox.com.au/trucknorrisv2-test/",
   "dependencies": {
     "@apollo/client": "^3.4.17",
     "@material-ui/core": "^4.12.3",
