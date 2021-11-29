@@ -41,7 +41,6 @@ const TruckNorris = React.memo(() => {
   const [melbourne, setMelbounre] = useState<SiteData[]>();
   const [sydney, setSydney] = useState<SiteData[]>();
   const [brisbane, setBrisbane] = useState<SiteData[]>();
-  const melNotes = useRef<string>("");
   const [cityNotes, setCityNotes] = useState<{
     melNotes: string;
     sydNotes: string;
@@ -301,10 +300,6 @@ const TruckNorris = React.memo(() => {
     });
     return limit;
   };
-
-  useEffect(() => {
-    console.log(userEditingTruckNorrisData);
-  }, [userEditingTruckNorrisData])
 
   const getCalculationDataForSite = (site: SiteID) => {
     let ret = null;
