@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TextField, IconButton, makeStyles } from "@material-ui/core";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import EditIcon from "@material-ui/icons/Edit";
@@ -13,7 +13,6 @@ const CityNotes = ({
   setUserEditingTruckNorrisData,
 }: CityNotesProps) => {
 
-  if (city === 'Brisbane') console.log(initalNotes)
   const classes = useStyles();
   const [loading, setLoading] = useState<boolean>(false);
   const [cityNotes, setCityNotes] = useState<string>(initalNotes);
@@ -21,6 +20,10 @@ const CityNotes = ({
   const triggerMode = () => {
     setUserEditingTruckNorrisData(!userEditingTruckNorrisData);
   }
+
+  useEffect(() => {
+    setCityNotes(initalNotes)
+  }, [initalNotes])
 
   const onButtonTriggered = () => {
     if (userEditingTruckNorrisData) {
