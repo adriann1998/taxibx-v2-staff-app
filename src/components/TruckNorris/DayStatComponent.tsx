@@ -36,6 +36,7 @@ import {
   SiteData,
   SiteID,
   UserModData,
+  UserModValue,
 } from '../../types';
 
 const DayStatComponent = ({
@@ -57,16 +58,11 @@ const DayStatComponent = ({
   
   // Constant variables
   const currentTime = moment().valueOf();
-  const activeReservations = userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? true : false) : [];
   const clientsCount: number = day.data && day.data.customers && day.data.customers.length ? day.data.customers.length : 0;
-  const showDFWarning = (day.limits &&
-      day.limits[0][day.dateBroken[0].toLowerCase()].max &&
-      day.data &&
-      day.data.dfCount &&
-      (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
-      day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
-    ? true
-    : false;
+  const userSumMoves = (userMods && userMods.values && userMods.values.length)
+    ? userMods.values.filter(entry => entry.ttl >= moment().valueOf()).reduce((acc: number, entry: any) => acc + entry.del + entry.rtn, 0)
+    : 0;
+  const moves = day.data.pickup + day.data.delivery + userSumMoves;
   const initialLimits: {upper: number, lower: number} = 
     (userMods.limits && userMods.limits[0].upper && userMods.limits[0].lower)
       ? {upper: parseInt(userMods.limits[0].upper), lower: parseInt(userMods.limits[0].lower)}
@@ -74,40 +70,15 @@ const DayStatComponent = ({
       ? {upper: day.limits[0][day.dateBroken[0].toLowerCase()].max, lower: day.limits[0][day.dateBroken[0].toLowerCase()].min}
       : {upper: 0, lower: 0}
 
-  const hasUserLockedData = activeReservations.filter(entry => entry.user === user).length !== 0;
-  const userSumMoves = (userMods && userMods.values && userMods.values.length)
-    ? userMods.values.filter(entry => entry.ttl >= moment().valueOf()).reduce((acc: number, entry: any) => acc + entry.del + entry.rtn, 0)
-    : 0;
-  const moves = day.data.pickup + day.data.delivery + userSumMoves;
-  const userChangedValues = {
-    am: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.am > 0).reduce((acc, val) => acc + val.am, 0) : 0,
-    pm: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.pm > 0).reduce((acc, val) => acc + val.pm, 0) : 0,
-    trl: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.trl > 0).reduce((acc, val) => acc + val.trl, 0) : 0,
-    del: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.del > 0).reduce((acc, val) => acc + val.del, 0) : 0,
-    rtn: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.rtn > 0).reduce((acc, val) => acc + val.rtn, 0) : 0,
-    any: userMods.values ? userMods.values.filter(val => val.ttl > currentTime).reduce((acc, val) => acc + (val.rtn + val.del - (val.am + val.pm)), 0) : 0,
-  };
-
-  // console.log(userMods.holiday[0]?.holiday)
-  // const initialHolidayState: boolean =  (userMods.holiday[0]?.holiday) || (day.holiday && typeof day.holiday !== 'boolean' && day.holiday.description)
-  // const initialHolidayDescription = userMods.holiday[0].holidayDescription
-  //   ? userMods.holiday[0].holidayDescription
-  //   : typeof day.holiday !== 'boolean' && day.holiday.description
-  //   ? day.holiday.description
-  //   : "";
-
   const initialState = {
     arrowRef: null,
     movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
-    upperLimit: initialLimits.upper,
-    lowerLimit: initialLimits.lower,
     ttl: 10,
     del: 0,
     rtn: 0,
     am: 0,
     pm: 0,
     trl: 0,
-    deletingMoveValues: false,
     infoMessageForDay: "",
   };
 
@@ -118,6 +89,31 @@ const DayStatComponent = ({
   const [editComponent, setEditComponent] = useState<string>("");
   const [color, setColor] = useState<string>("#ffffff");
   const [infoMessage, setInfoMessage] = useState<string>("");
+  const [userChangedValues, setUserChangedValues] = useState({
+    am: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.am > 0).reduce((acc, val) => acc + val.am, 0) : 0,
+    pm: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.pm > 0).reduce((acc, val) => acc + val.pm, 0) : 0,
+    trl: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.trl > 0).reduce((acc, val) => acc + val.trl, 0) : 0,
+    del: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.del > 0).reduce((acc, val) => acc + val.del, 0) : 0,
+    rtn: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.rtn > 0).reduce((acc, val) => acc + val.rtn, 0) : 0,
+    any: userMods.values ? userMods.values.filter(val => val.ttl > currentTime).reduce((acc, val) => acc + (val.rtn + val.del - (val.am + val.pm)), 0) : 0,
+  });
+  const [showDFWarning, setShowDFWarning] = useState((
+    day.limits &&
+      day.limits[0][day.dateBroken[0].toLowerCase()].max &&
+      day.data &&
+      day.data.dfCount &&
+      (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
+      day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
+    ? true
+    : false
+  );
+  const [deletingMoveValues, setDeletingMoveValues] = useState<boolean>(false);
+  const [activeReservations, setActiveReservations] = useState<UserModValue[]>(
+    userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? true : false) : []
+  );
+  const [hasUserLockedData, setHasUserLockedData] = useState<boolean>(false);
+  const [upperLimit, setUpperLimit] = useState<number>(0);
+  const [lowerLimit, setLowerLimit] = useState<number>(0);
 
   const [changing, setChanging] = useState<{
     holiday: boolean;
@@ -135,15 +131,12 @@ const DayStatComponent = ({
   const [state, setState] = useState<{
     arrowRef: any | null;
     movesMessage: string;
-    lowerLimit: number;
-    upperLimit: number;
     ttl: number;
     del: number;
     rtn: number;
     am: number;
     pm: number;
     trl: number;
-    deletingMoveValues: boolean;
     infoMessageForDay: string;
   }>(initialState);
 
@@ -177,6 +170,24 @@ const DayStatComponent = ({
   }, []);
 
   /**
+   * Change hasUserLockedData value whenever activeReservations changes
+   */
+  useEffect(() => {
+    setHasUserLockedData(activeReservations.filter(entry => entry.user === user).length !== 0);
+  }, [activeReservations]);
+
+  /**
+   * Re-calculate states whenever userMods or day change
+   */
+  useEffect(() => {
+    // only edit if the component is not being edited
+    if (editComponent !== "limits") {
+      setUpperLimit(initialLimits.upper);
+      setLowerLimit(initialLimits.lower);
+    };
+  }, [userMods, day]);
+
+  /**
    * Change card color whenever the state changes or moves changes
    */
   useEffect(() => {
@@ -184,9 +195,6 @@ const DayStatComponent = ({
     // Get the max limit for the day
     if (day && day.dateBroken[0].toLowerCase() !== "sun") {
       // Check whether user edited data exists, if so, consider them as limits
-
-      const upperLimit = state.upperLimit;
-      const lowerLimit = state.lowerLimit;
 
       if (moves <= Math.round((upperLimit * 2) / 3)) {
         // healthy
@@ -201,9 +209,8 @@ const DayStatComponent = ({
         color = "#F44336";
       };
     };
-    if (day.date === '2021-12-18') console.log("hi there")
     setColor(color);
-  }, [state.upperLimit, state.lowerLimit]);
+  }, [upperLimit, lowerLimit]);
 
   /**
    * Sets the info message to be displayed in the Moves box
@@ -251,6 +258,8 @@ const DayStatComponent = ({
     setOpenDialog(false);
     setUserEditingTruckNorrisData(false);
     setState(initialState);
+    setLowerLimit(initialLimits.lower);
+    setUpperLimit(initialLimits.upper);
   }, []);
 
   const handleLimitChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1788,7 +1797,7 @@ const DayStatComponent = ({
                               </Typography>
                               <hr />
 
-                              {state.deletingMoveValues ? (
+                              {deletingMoveValues ? (
                                 <CircularProgress className={classes.progress} />
                               ) : (
                                 userMods &&
@@ -1836,10 +1845,7 @@ const DayStatComponent = ({
                                           <DeleteIcon
                                             onClick={() => {
                                               setUserEditingTruckNorrisData(true);
-                                              setState({
-                                                ...state,
-                                                deletingMoveValues: true,
-                                              });
+                                              setDeletingMoveValues(true);
                                               const data = {
                                                 site: site,
                                                 date: day.date,
@@ -1849,12 +1855,8 @@ const DayStatComponent = ({
                                               axiosInstance
                                                 .post("/userchangesdelete", data)
                                                 .then((response) => {
-                                                  //console.log(response);
                                                   setSnackbarMessage("Locked reservation deleted successfully!");
-                                                  setState({
-                                                    ...state,
-                                                    deletingMoveValues: false,
-                                                  });
+                                                  setDeletingMoveValues(false);
                                                   setUserEditingTruckNorrisData(false);
                                                   hideAdjustmentDialog();
                                                   setTimeout(() => handleSnackClose(), 1000);
@@ -1899,8 +1901,8 @@ const DayStatComponent = ({
                                   label="Lower Limit"
                                   type="number"
                                   className={classes.textField}
-                                  value={state.lowerLimit}
-                                  onChange={handleLimitChange}
+                                  value={lowerLimit}
+                                  onChange={(ev) => setLowerLimit(parseInt(ev.target.value))}
                                   margin="normal"
                                 />
                               </Grid>
@@ -1910,8 +1912,8 @@ const DayStatComponent = ({
                                   label="Upper Limit"
                                   type="number"
                                   className={classes.textField}
-                                  value={state.upperLimit}
-                                  onChange={handleLimitChange}
+                                  value={upperLimit}
+                                  onChange={(ev) => setUpperLimit(parseInt(ev.target.value))}
                                   margin="normal"
                                 />
                               </Grid>
@@ -1924,8 +1926,8 @@ const DayStatComponent = ({
                                   onClick={() => {
                                     const data = {
                                       type: "limits",
-                                      upper: state.upperLimit,
-                                      lower: state.lowerLimit,
+                                      upper: upperLimit,
+                                      lower: lowerLimit,
                                     };
                                     setChanging({
                                       ...changing,

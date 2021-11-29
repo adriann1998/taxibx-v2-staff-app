@@ -27,10 +27,21 @@ const TruckNorris = React.memo(() => {
   const classes = useStyles();
 
   const [userEditingTruckNorrisData, setUserEditingTruckNorrisData] = useState<boolean>(false);
-  const [holidays, setHolidays] = useState<HolidayData[]>();
-  const [calculationData, setCalculationData] = useState<CalculationData[]>();
-  const [dateAndTrailerLimits, setDateAndTrailerLimits] = useState<DateAndTrailerLimitData[]>();
-  const [userModifications, setUserModifications] = useState<UserModData[]>();
+  const [data, setData] = useState<{
+    holidays?: HolidayData[];
+    calculationData?: CalculationData[];
+    dateAndTrailerLimits?: DateAndTrailerLimitData[];
+    userModifications?: UserModData[];
+  }>({
+    holidays: undefined,
+    calculationData: undefined,
+    dateAndTrailerLimits: undefined,
+    userModifications: undefined,
+  });
+  // const [holidays, setHolidays] = useState<HolidayData[]>();
+  // const [calculationData, setCalculationData] = useState<CalculationData[]>();
+  // const [dateAndTrailerLimits, setDateAndTrailerLimits] = useState<DateAndTrailerLimitData[]>();
+  // const [userModifications, setUserModifications] = useState<UserModData[]>();
   const [melbourne, setMelbounre] = useState<SiteData[]>();
   const [sydney, setSydney] = useState<SiteData[]>();
   const [brisbane, setBrisbane] = useState<SiteData[]>();
@@ -45,8 +56,6 @@ const TruckNorris = React.memo(() => {
   });
 
   let loadInterval: NodeJS.Timeout;
-  let interval: NodeJS.Timeout;
-  let interval2: NodeJS.Timeout; 
 
   useEffect(() => {
     executeOnce();
@@ -59,57 +68,30 @@ const TruckNorris = React.memo(() => {
       } catch (e) {
         console.log(e);
       }
-
-      // Set data every 45 seconds
-      interval = setInterval(async () => {
-        if (
-          holidays &&
-          calculationData &&
-          dateAndTrailerLimits &&
-          !stateValuesSet
-        ) {
-          stateValuesSet = true;
-          prepareData();
-        }
-      }, 45 * 1000);
     }
   }, []);
 
   useEffect(() => {
     if (
-      holidays && 
-      calculationData && 
-      dateAndTrailerLimits &&
-      userModifications
+      data.holidays && 
+      data.calculationData && 
+      data.dateAndTrailerLimits &&
+      data.userModifications
     ) {
       prepareData();
     };
-  }, [holidays, calculationData, dateAndTrailerLimits, userModifications]);
+  }, [data]);
 
   useEffect(() => {
     // Clear intervals on unmount
     return () => {
       clearInterval(loadInterval);
-      clearInterval(interval);
-      clearInterval(interval2);
     }
   }, []);
 
   const executeOnce = async () => {
     loadData();
     prepareData();
-    // Set data every 6 minutes
-    interval2 = setInterval(async () => {
-      if (
-        holidays &&
-        calculationData &&
-        dateAndTrailerLimits &&
-        !stateValuesSet
-      ) {
-        stateValuesSet = true;
-        prepareData();
-      }
-    }, 500);
   };
 
   const loadData = async () => {
@@ -123,8 +105,8 @@ const TruckNorris = React.memo(() => {
       },
     });
 
-    const promise = new Promise((resolve, reject) => {
 
+    const getHolidaysPromise = new Promise<HolidayData[] | undefined>((resolve, reject) => {
       client
         .query({
           query: gql`
@@ -142,66 +124,114 @@ const TruckNorris = React.memo(() => {
           ) {
             // console.log('HOLIDAYS ==============');
             // console.log(JSON.parse(result.data.getAllHolidays));
-            setHolidays(JSON.parse(result.data.getAllHolidays));
+            resolve(JSON.parse(result.data.getAllHolidays))
+            // setHolidays(JSON.parse(result.data.getAllHolidays));
           } else {
             console.log("Error loading holidays from the GraphQL API");
           }
         });
+    });
 
-      // Retrieve calculation data
+    // Retrieve calculation data
+    const getCalculationPromise = new Promise<any>((resolve, reject) => {
       axiosInstance
         .get("/")
         .then((response) => {
           // console.log('CALCULATIONS ==============');
           // console.log(response.data);
-          if (response.data.length) {
-            setCalculationData(response.data);
-          }
+          resolve(response.data)
+          // if (response.data.length) {
+          //   resolve()
+          //   setCalculationData(response.data);
+          // }
         })
         .catch((error) => {
           console.log(error);
         });
+    });
 
-      // Retrieve limits
+    // Retrieve limits
+    const getLimitsPromise = new Promise<any>((resolve, reject) => {
       axiosInstance
         .get("/limits")
         .then((response) => {
           // console.log('LIMITS ==============');
           // console.log(response.data);
-          setDateAndTrailerLimits(response.data);
+          // setDateAndTrailerLimits(response.data);
+          resolve(response.data)
         })
         .catch((error) => {
           console.log(error);
         });
+    });
 
-      // Retrieve user changes
-      const dates = getRemainingWorkingDaysof4Weeks();
+    // Retrieve user changes
+    const dates = getRemainingWorkingDaysof4Weeks();
+    const getUserChangePromise = new Promise<any>((resolve, reject) => {
       axiosInstance
         .post("/userchanges", dates)
         .then((response) => {
           // console.log('USER CHANGES ==============');
           // console.log(response.data);
-          setUserModifications(response.data)
+          // setUserModifications(response.data)
+          resolve(response.data);
         })
         .catch((error) => {
           console.log(error);
         });
+    });
 
-      // Retrieve city notes only when not editing
+    // Retrieve city notes only when not editing
+    const getCityNotesPromise = new Promise<any>((resolve, reject) => {
       fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
         .then((data) => data.json())
         .then((data) => {
           // console.log('CITY NOTES ==============')
           // console.log(data);
-          setCityNotes({
-            melNotes: data.filter((d: any) => d.city === "Melbourne")[0].notes,
-            sydNotes: data.filter((d: any) => d.city === "Sydney")[0].notes,
-            brisNotes: data.filter((d: any) => d.city === "Brisbane")[0].notes,
-          });
+          resolve(data);
+          // setCityNotes({
+          //   melNotes: data.filter((d: any) => d.city === "Melbourne")[0].notes,
+          //   sydNotes: data.filter((d: any) => d.city === "Sydney")[0].notes,
+          //   brisNotes: data.filter((d: any) => d.city === "Brisbane")[0].notes,
+          // });
         });
     });
+    
+    const promises = [
+      getHolidaysPromise,
+      getCalculationPromise,
+      getLimitsPromise,
+      getUserChangePromise,
+      getCityNotesPromise,
+    ];
+    Promise.all(promises).then((values) => {
+      const holidaysRes = values[0];
+      const calculationRes = values[1];
+      const dateAndTrailerLimitsRes = values[2];
+      const userModsRes = values[3];
+      const cityNotesRes = values[4];
+      setData({
+        holidays: holidaysRes,
+        calculationData: calculationRes, 
+        dateAndTrailerLimits: dateAndTrailerLimitsRes,
+        userModifications: userModsRes,
+        // cityNotes: {
+        //   melNotes: cityNotesRes.filter((d: any) => d.city === "Melbourne")[0].notes,
+        //   sydNotes: cityNotesRes.filter((d: any) => d.city === "Sydney")[0].notes,
+        //   brisNotes: cityNotesRes.filter((d: any) => d.city === "Brisbane")[0].notes,
+        // }
+      })
+      // setCalculationData(values[1])
+      // setDateAndTrailerLimits(values[2]);
+      // setUserModifications(values[3]);
+      setCityNotes({
+        melNotes: values[4].filter((d: any) => d.city === "Melbourne")[0].notes,
+        sydNotes: values[4].filter((d: any) => d.city === "Sydney")[0].notes,
+        brisNotes: values[4].filter((d: any) => d.city === "Brisbane")[0].notes,
+      })
+    });
 
-    return await promise;
+    // return await promiseAll;
 
   };
 
@@ -219,8 +249,8 @@ const TruckNorris = React.memo(() => {
     // Loop through each day and assign values
     if (
       remainingDays.length &&
-      calculationData?.length &&
-      dateAndTrailerLimits?.length
+      data.calculationData?.length &&
+      data.dateAndTrailerLimits?.length
     ) {
       for (let day of remainingDays) {
         let dateObject: any = {
@@ -285,8 +315,6 @@ const TruckNorris = React.memo(() => {
     } else {
       return undefined;
     }
-
-    
   };
 
   const getLimitsForTheDay = ({
@@ -306,17 +334,17 @@ const TruckNorris = React.memo(() => {
   };
 
   const getCalculationDataForSite = (site: SiteID) => {
-    let data = null;
-    if (calculationData?.length) {
-      const latestData = getLastAddedRecord(calculationData).calculation;
+    let ret = null;
+    if (data.calculationData?.length) {
+      const latestData = getLastAddedRecord(data.calculationData).calculation;
       for (let siteKey in latestData) {
         if (parseInt(siteKey.split("#")[1], 10) === site) {
-          data = calculationData[0].calculation[siteKey];
+          ret = data.calculationData[0].calculation[siteKey];
         }
       }
     }
 
-    return data;
+    return ret;
   };
 
   const getLastAddedRecord = (records: CalculationData[]) => {
@@ -325,15 +353,15 @@ const TruckNorris = React.memo(() => {
   };
 
   const getLimitsForSite = (site: SiteID) => {
-    let limits = dateAndTrailerLimits?.filter((limit) => {
+    let limits = data.dateAndTrailerLimits?.filter((limit) => {
       return limit.id === site;
     });
     return limits ? limits[0] : undefined;
   };
 
   const getUserModificationsForTheSite = (site: SiteID) => {
-    if (userModifications) {
-      let mods = userModifications.filter((usermod) => {
+    if (data.userModifications) {
+      let mods = data.userModifications.filter((usermod) => {
         return usermod.id.includes(site.toString());
       });
       return mods;
@@ -360,8 +388,8 @@ const TruckNorris = React.memo(() => {
       default:
         state = "";
     }
-    if (state !== "" && holidays?.length) {
-      for (let st of holidays) {
+    if (state !== "" && data.holidays?.length) {
+      for (let st of data.holidays) {
         if (st.state === state) {
           for (let year of st.years) {
             if (year.year === parseInt(moment().format("YYYY"), 10)) {

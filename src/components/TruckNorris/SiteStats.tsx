@@ -30,7 +30,7 @@ const SiteStats = ({
       {
         siteData.map((stat, index) => {
           // Check whether the date is Saturday, If so add a gap
-          if (!stat.limits.length) {
+          if (!stat.limits.length || !dateAndTrailerLimits) {
             return null;
           }
           return moment(stat.date).day() === 6 ? (
