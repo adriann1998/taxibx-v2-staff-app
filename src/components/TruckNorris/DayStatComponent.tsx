@@ -72,14 +72,12 @@ const DayStatComponent = ({
 
   const initialState = {
     arrowRef: null,
-    movesMessage: userMods.message && userMods.message[0].message ? userMods.message[0].message : "",
     ttl: 10,
     del: 0,
     rtn: 0,
     am: 0,
     pm: 0,
     trl: 0,
-    infoMessageForDay: "",
   };
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -90,23 +88,14 @@ const DayStatComponent = ({
   const [color, setColor] = useState<string>("#ffffff");
   const [infoMessage, setInfoMessage] = useState<string>("");
   const [userChangedValues, setUserChangedValues] = useState({
-    am: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.am > 0).reduce((acc, val) => acc + val.am, 0) : 0,
-    pm: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.pm > 0).reduce((acc, val) => acc + val.pm, 0) : 0,
-    trl: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.trl > 0).reduce((acc, val) => acc + val.trl, 0) : 0,
-    del: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.del > 0).reduce((acc, val) => acc + val.del, 0) : 0,
-    rtn: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.rtn > 0).reduce((acc, val) => acc + val.rtn, 0) : 0,
-    any: userMods.values ? userMods.values.filter(val => val.ttl > currentTime).reduce((acc, val) => acc + (val.rtn + val.del - (val.am + val.pm)), 0) : 0,
+    am: 0,
+    pm: 0,
+    trl: 0,
+    del: 0,
+    rtn: 0,
+    any: 0,
   });
-  const [showDFWarning, setShowDFWarning] = useState((
-    day.limits &&
-      day.limits[0][day.dateBroken[0].toLowerCase()].max &&
-      day.data &&
-      day.data.dfCount &&
-      (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
-      day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
-    ? true
-    : false
-  );
+  const [showDFWarning, setShowDFWarning] = useState(false);
   const [deletingMoveValues, setDeletingMoveValues] = useState<boolean>(false);
   const [activeReservations, setActiveReservations] = useState<UserModValue[]>(
     userMods?.values ? userMods.values.filter((value) => value.ttl >= moment().valueOf() ? true : false) : []
@@ -114,6 +103,9 @@ const DayStatComponent = ({
   const [hasUserLockedData, setHasUserLockedData] = useState<boolean>(false);
   const [upperLimit, setUpperLimit] = useState<number>(0);
   const [lowerLimit, setLowerLimit] = useState<number>(0);
+  const [movesMessage, setMovesMessage] = useState<string>("");
+  const [infoMessageForDay, setInfoMessageForDay] = useState<string>("");
+  const [isDayClosed, setIsDayClosed] = useState<boolean>(false);
 
   const [changing, setChanging] = useState<{
     holiday: boolean;
@@ -130,17 +122,13 @@ const DayStatComponent = ({
   });
   const [state, setState] = useState<{
     arrowRef: any | null;
-    movesMessage: string;
     ttl: number;
     del: number;
     rtn: number;
     am: number;
     pm: number;
     trl: number;
-    infoMessageForDay: string;
   }>(initialState);
-
-  const isDayClosed = holiday || holidayDescription !== "";
 
   /**
    * Apply initial state
@@ -175,6 +163,51 @@ const DayStatComponent = ({
   useEffect(() => {
     setHasUserLockedData(activeReservations.filter(entry => entry.user === user).length !== 0);
   }, [activeReservations]);
+
+  /**
+   * Update showDFWarning whenever day data change
+   */
+  useEffect(() => {
+    setShowDFWarning((
+      day.limits &&
+        day.limits[0][day.dateBroken[0].toLowerCase()].max &&
+        day.data &&
+        day.data.dfCount &&
+        (day.dateBroken[0] === "Fri" || day.dateBroken[0] === "Sat") &&
+        day.data.dfCount / day.limits[0][day.dateBroken[0].toLowerCase() as DayOfTheWeek].max > 0.3)
+      ? true
+      : false);
+  }, [day]);
+
+  /**
+   * Set user modified moves message
+   */
+  useEffect(() => {
+    // Only update if the user is not editing "moves" component
+    if (editComponent !== 'moves') {
+      const msg = userMods.message && userMods.message[0].message ? userMods.message[0].message : "";
+      setMovesMessage(msg);
+    }
+
+    setUserChangedValues({
+      am: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.am > 0).reduce((acc, val) => acc + val.am, 0) : 0,
+      pm: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.pm > 0).reduce((acc, val) => acc + val.pm, 0) : 0,
+      trl: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.trl > 0).reduce((acc, val) => acc + val.trl, 0) : 0,
+      del: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.del > 0).reduce((acc, val) => acc + val.del, 0) : 0,
+      rtn: userMods.values ? userMods.values.filter(val => val.ttl > currentTime && val.rtn > 0).reduce((acc, val) => acc + val.rtn, 0) : 0,
+      any: userMods.values ? userMods.values.filter(val => val.ttl > currentTime).reduce((acc, val) => acc + (val.rtn + val.del - (val.am + val.pm)), 0) : 0,
+    });
+  }, [userMods]);
+
+  /**
+   * Re-evalute isClosed status whenever 'holidayDescription' or 'holiday' change value
+   */
+  useEffect(() => {
+    // Only update if the user is not editing "date" component
+    if (editComponent !== 'date') {
+      setIsDayClosed(holiday || holidayDescription !== "");
+    };
+  }, [holidayDescription, holiday]);
 
   /**
    * Re-calculate states whenever userMods or day change
@@ -1624,14 +1657,11 @@ const DayStatComponent = ({
                                 id="infoMessage"
                                 label="Info Message"
                                 className={classes.textField2}
-                                value={state.infoMessageForDay}
+                                value={infoMessageForDay}
                                 variant="outlined"
                                 multiline={true}
                                 onChange={(event) => {
-                                  setState({
-                                    ...state,
-                                    infoMessageForDay: event.target.value,
-                                  });
+                                  setInfoMessageForDay(event.target.value);
                                 }}
                                 rows={2}
                                 disabled={false}
@@ -1648,12 +1678,9 @@ const DayStatComponent = ({
                                 onClick={() => {
                                   const data = {
                                     type: "infoMsg",
-                                    message: state.infoMessageForDay,
+                                    message: infoMessageForDay,
                                   };
-                                  setState({ 
-                                    ...state,
-                                    infoMessageForDay: "",
-                                  });
+                                  setInfoMessageForDay("");
                                   setChanging({
                                     ...changing,
                                     holiday: true,
@@ -1693,7 +1720,6 @@ const DayStatComponent = ({
                                               holiday: true,
                                             });
                                             setUserEditingTruckNorrisData(true);
-                                            //this.setState({ deletingMoveValues: true });
                                             const data = {
                                               site: site,
                                               date: day.date,
@@ -1748,12 +1774,9 @@ const DayStatComponent = ({
                                 id="movesMessage"
                                 label="Message"
                                 className={classes.textField}
-                                value={state.movesMessage}
+                                value={movesMessage}
                                 onChange={(event) => {
-                                  setState({ 
-                                    ...state,
-                                    movesMessage: event.target.value,
-                                  });
+                                  setMovesMessage(event.target.value);
                                 }}
                                 margin="normal"
                                 inputProps={{ maxLength: 15 }}
@@ -1771,7 +1794,7 @@ const DayStatComponent = ({
                                     ...changing,
                                     message: true,
                                   });
-                                  const theNewMessage = state.movesMessage !== "" ? state.movesMessage : "N/A";
+                                  const theNewMessage = movesMessage !== "" ? movesMessage : "N/A";
                                   const data = {
                                     type: "message",
                                     message: theNewMessage,

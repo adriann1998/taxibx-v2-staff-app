@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import axios from "axios";
 import {
   makeStyles,
@@ -38,13 +38,10 @@ const TruckNorris = React.memo(() => {
     dateAndTrailerLimits: undefined,
     userModifications: undefined,
   });
-  // const [holidays, setHolidays] = useState<HolidayData[]>();
-  // const [calculationData, setCalculationData] = useState<CalculationData[]>();
-  // const [dateAndTrailerLimits, setDateAndTrailerLimits] = useState<DateAndTrailerLimitData[]>();
-  // const [userModifications, setUserModifications] = useState<UserModData[]>();
   const [melbourne, setMelbounre] = useState<SiteData[]>();
   const [sydney, setSydney] = useState<SiteData[]>();
   const [brisbane, setBrisbane] = useState<SiteData[]>();
+  const melNotes = useRef<string>("");
   const [cityNotes, setCityNotes] = useState<{
     melNotes: string;
     sydNotes: string;
@@ -55,21 +52,20 @@ const TruckNorris = React.memo(() => {
     brisNotes: "",
   });
 
-  let loadInterval: NodeJS.Timeout;
+  const loadInterval = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     executeOnce();
     // Load data 5 seconds if the user is not editing data
-    if (!userEditingTruckNorrisData) {
-      try {
-        loadInterval = setInterval(async () => {
-          loadData();
-        }, 5 * 1000);
-      } catch (e) {
-        console.log(e);
-      }
+    try {
+      if (loadInterval.current) clearInterval(loadInterval.current);
+      loadInterval.current = setInterval(async () => {
+        loadData();
+      }, 5 * 1000);
+    } catch (e) {
+      console.log(e);
     }
-  }, []);
+  }, [userEditingTruckNorrisData]);
 
   useEffect(() => {
     if (
@@ -85,153 +81,126 @@ const TruckNorris = React.memo(() => {
   useEffect(() => {
     // Clear intervals on unmount
     return () => {
-      clearInterval(loadInterval);
+      if (loadInterval.current) {
+        clearInterval(loadInterval.current);
+      };
     }
   }, []);
 
   const executeOnce = async () => {
-    loadData();
-    prepareData();
+    if (!userEditingTruckNorrisData) {
+      loadData();
+    };
   };
 
-  const loadData = async () => {
-    stateValuesSet = false;
-    // Configure instance
-    const axiosInstance = axios.create({
-      baseURL: apiURL,
-      timeout: 35000,
-      headers: {
-        'x-api-key': process.env.REACT_APP_API_KEY as string,
-      },
-    });
-
-
-    const getHolidaysPromise = new Promise<HolidayData[] | undefined>((resolve, reject) => {
-      client
-        .query({
-          query: gql`
-            query GetHolidays {
-              getAllHolidays
+  const loadData = () => {
+    if (!userEditingTruckNorrisData) {
+      // Configure instance
+      const axiosInstance = axios.create({
+        baseURL: apiURL,
+        timeout: 35000,
+        headers: {
+          'x-api-key': process.env.REACT_APP_API_KEY as string,
+        },
+      });
+  
+  
+      const getHolidaysPromise = new Promise<HolidayData[] | undefined>((resolve, reject) => {
+        client
+          .query({
+            query: gql`
+              query GetHolidays {
+                getAllHolidays
+              }
+            `,
+          })
+          .then((result) => {
+            if (
+              result &&
+              result.data &&
+              result.data.getAllHolidays &&
+              result.data.getAllHolidays.length
+            ) {
+              resolve(JSON.parse(result.data.getAllHolidays));
+            } else {
+              console.log("Error loading holidays from the GraphQL API");
             }
-          `,
+          });
+      });
+  
+      // Retrieve calculation data
+      const getCalculationPromise = new Promise<any>((resolve, reject) => {
+        axiosInstance
+          .get("/")
+          .then((response) => {
+            resolve(response.data)
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      });
+  
+      // Retrieve limits
+      const getLimitsPromise = new Promise<any>((resolve, reject) => {
+        axiosInstance
+          .get("/limits")
+          .then((response) => {
+            resolve(response.data)
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      });
+  
+      // Retrieve user changes
+      const dates = getRemainingWorkingDaysof4Weeks();
+      const getUserChangePromise = new Promise<any>((resolve, reject) => {
+        axiosInstance
+          .post("/userchanges", dates)
+          .then((response) => {
+            resolve(response.data);
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      });
+  
+      // Retrieve city notes only when not editing
+      const getCityNotesPromise = new Promise<any>((resolve, reject) => {
+        fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
+          .then((data) => data.json())
+          .then((data) => {
+            resolve(data);
+          });
+      });
+      
+      const promises = [
+        getHolidaysPromise,
+        getCalculationPromise,
+        getLimitsPromise,
+        getUserChangePromise,
+        getCityNotesPromise,
+      ];
+      Promise.all(promises).then((values) => {
+        const holidaysRes = values[0];
+        const calculationRes = values[1];
+        const dateAndTrailerLimitsRes = values[2];
+        const userModsRes = values[3];
+        const cityNotesRes = values[4];
+        setData({
+          holidays: holidaysRes,
+          calculationData: calculationRes, 
+          dateAndTrailerLimits: dateAndTrailerLimitsRes,
+          userModifications: userModsRes,
         })
-        .then((result) => {
-          if (
-            result &&
-            result.data &&
-            result.data.getAllHolidays &&
-            result.data.getAllHolidays.length
-          ) {
-            // console.log('HOLIDAYS ==============');
-            // console.log(JSON.parse(result.data.getAllHolidays));
-            resolve(JSON.parse(result.data.getAllHolidays))
-            // setHolidays(JSON.parse(result.data.getAllHolidays));
-          } else {
-            console.log("Error loading holidays from the GraphQL API");
-          }
-        });
-    });
-
-    // Retrieve calculation data
-    const getCalculationPromise = new Promise<any>((resolve, reject) => {
-      axiosInstance
-        .get("/")
-        .then((response) => {
-          // console.log('CALCULATIONS ==============');
-          // console.log(response.data);
-          resolve(response.data)
-          // if (response.data.length) {
-          //   resolve()
-          //   setCalculationData(response.data);
-          // }
+        setCityNotes({
+          melNotes: cityNotesRes.filter((d: any) => d.city === "Melbourne")[0].notes,
+          sydNotes: cityNotesRes.filter((d: any) => d.city === "Sydney")[0].notes,
+          brisNotes: cityNotesRes.filter((d: any) => d.city === "Brisbane")[0].notes,
         })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
-
-    // Retrieve limits
-    const getLimitsPromise = new Promise<any>((resolve, reject) => {
-      axiosInstance
-        .get("/limits")
-        .then((response) => {
-          // console.log('LIMITS ==============');
-          // console.log(response.data);
-          // setDateAndTrailerLimits(response.data);
-          resolve(response.data)
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
-
-    // Retrieve user changes
-    const dates = getRemainingWorkingDaysof4Weeks();
-    const getUserChangePromise = new Promise<any>((resolve, reject) => {
-      axiosInstance
-        .post("/userchanges", dates)
-        .then((response) => {
-          // console.log('USER CHANGES ==============');
-          // console.log(response.data);
-          // setUserModifications(response.data)
-          resolve(response.data);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
-
-    // Retrieve city notes only when not editing
-    const getCityNotesPromise = new Promise<any>((resolve, reject) => {
-      fetch("https://alfxkn3ccg.execute-api.ap-southeast-2.amazonaws.com/prod/citynotes")
-        .then((data) => data.json())
-        .then((data) => {
-          // console.log('CITY NOTES ==============')
-          // console.log(data);
-          resolve(data);
-          // setCityNotes({
-          //   melNotes: data.filter((d: any) => d.city === "Melbourne")[0].notes,
-          //   sydNotes: data.filter((d: any) => d.city === "Sydney")[0].notes,
-          //   brisNotes: data.filter((d: any) => d.city === "Brisbane")[0].notes,
-          // });
-        });
-    });
-    
-    const promises = [
-      getHolidaysPromise,
-      getCalculationPromise,
-      getLimitsPromise,
-      getUserChangePromise,
-      getCityNotesPromise,
-    ];
-    Promise.all(promises).then((values) => {
-      const holidaysRes = values[0];
-      const calculationRes = values[1];
-      const dateAndTrailerLimitsRes = values[2];
-      const userModsRes = values[3];
-      const cityNotesRes = values[4];
-      setData({
-        holidays: holidaysRes,
-        calculationData: calculationRes, 
-        dateAndTrailerLimits: dateAndTrailerLimitsRes,
-        userModifications: userModsRes,
-        // cityNotes: {
-        //   melNotes: cityNotesRes.filter((d: any) => d.city === "Melbourne")[0].notes,
-        //   sydNotes: cityNotesRes.filter((d: any) => d.city === "Sydney")[0].notes,
-        //   brisNotes: cityNotesRes.filter((d: any) => d.city === "Brisbane")[0].notes,
-        // }
-      })
-      // setCalculationData(values[1])
-      // setDateAndTrailerLimits(values[2]);
-      // setUserModifications(values[3]);
-      setCityNotes({
-        melNotes: values[4].filter((d: any) => d.city === "Melbourne")[0].notes,
-        sydNotes: values[4].filter((d: any) => d.city === "Sydney")[0].notes,
-        brisNotes: values[4].filter((d: any) => d.city === "Brisbane")[0].notes,
-      })
-    });
-
-    // return await promiseAll;
+      });
+  
+    };
 
   };
 
@@ -332,6 +301,10 @@ const TruckNorris = React.memo(() => {
     });
     return limit;
   };
+
+  useEffect(() => {
+    console.log(userEditingTruckNorrisData);
+  }, [userEditingTruckNorrisData])
 
   const getCalculationDataForSite = (site: SiteID) => {
     let ret = null;
@@ -439,12 +412,14 @@ const TruckNorris = React.memo(() => {
             Melbourne
           </Typography>
           <CityNotes
-            notes={cityNotes.melNotes}
+            initalNotes={cityNotes.melNotes}
             city="Melbourne"
-            handleNotesChange={(event) => setCityNotes({
+            onSave={(newComment: string) => setCityNotes({
               ...cityNotes,
-              melNotes: event.target.value
+              melNotes: newComment
             })}
+            userEditingTruckNorrisData={userEditingTruckNorrisData}
+            setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
           />
           <br />
           <br />
@@ -465,12 +440,14 @@ const TruckNorris = React.memo(() => {
         <Grid item xs={12} sm={4}>
           <Typography variant="h5" style={{marginBottom: '15px'}}>Sydney</Typography>
           <CityNotes
-            notes={cityNotes.sydNotes}
+            initalNotes={cityNotes.sydNotes}
             city="Sydney"
-            handleNotesChange={(event) => setCityNotes({
+            onSave={(newComment: string) => setCityNotes({
               ...cityNotes,
-              sydNotes: event.target.value
+              melNotes: newComment
             })}
+            userEditingTruckNorrisData={userEditingTruckNorrisData}
+            setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
           />
           <br />
           <br />
@@ -491,12 +468,14 @@ const TruckNorris = React.memo(() => {
         <Grid item xs={12} sm={4}>
           <Typography variant="h5" style={{marginBottom: '15px'}}>Brisbane</Typography>
           <CityNotes
-            notes={cityNotes.brisNotes}
+            initalNotes={cityNotes.brisNotes}
             city="Brisbane"
-            handleNotesChange={(event) => setCityNotes({
+            onSave={(newComment: string) => setCityNotes({
               ...cityNotes,
-              brisNotes: event.target.value
+              melNotes: newComment
             })}
+            userEditingTruckNorrisData={userEditingTruckNorrisData}
+            setUserEditingTruckNorrisData={setUserEditingTruckNorrisData}
           />
           <br />
           <br />

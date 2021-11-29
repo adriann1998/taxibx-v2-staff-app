@@ -7,21 +7,23 @@ import { City } from '../../types';
 
 
 const CityNotes = ({
-  notes,
+  initalNotes,
   city,
-  handleNotesChange,
+  userEditingTruckNorrisData,
+  setUserEditingTruckNorrisData,
 }: CityNotesProps) => {
 
+  if (city === 'Brisbane') console.log(initalNotes)
   const classes = useStyles();
   const [loading, setLoading] = useState<boolean>(false);
-  const [editMode, setEditMode] = useState<boolean>(false);
+  const [cityNotes, setCityNotes] = useState<string>(initalNotes);
 
   const triggerMode = () => {
-    setEditMode(!editMode);
+    setUserEditingTruckNorrisData(!userEditingTruckNorrisData);
   }
 
   const onButtonTriggered = () => {
-    if (editMode) {
+    if (userEditingTruckNorrisData) {
       // if editMode is true, then the button clicked is the "SAVE" button
       saveNotes();
     } else {
@@ -38,7 +40,7 @@ const CityNotes = ({
     // PUT the updated data to DynamoDB through AWS Gateway
     const vars = {
       city: city,
-      notes: notes,
+      notes: cityNotes,
     };
     const httpOptions = {
       method: "PUT",
@@ -67,13 +69,13 @@ const CityNotes = ({
         <CircularProgress className={classes.progress} />
       ) : (
         <TextField
-          variant={editMode ? "outlined" : "filled"}
+          variant={userEditingTruckNorrisData ? "outlined" : "filled"}
           fullWidth
           multiline
           rows={5}
-          disabled={!editMode}
-          value={notes}
-          onChange={handleNotesChange}
+          disabled={!userEditingTruckNorrisData}
+          value={cityNotes}
+          onChange={(ev) => setCityNotes(ev.target.value)}
           style={{
             backgroundColor: "#F4A460",
           }}
@@ -86,7 +88,7 @@ const CityNotes = ({
                 style={{ bottom: 3, right: 3 }}
                 onClick={onButtonTriggered}
               >
-                {editMode ? <SaveIcon /> : <EditIcon />}
+                {userEditingTruckNorrisData ? <SaveIcon /> : <EditIcon />}
               </IconButton>
             ),
           }}
@@ -97,9 +99,11 @@ const CityNotes = ({
 }
 
 interface CityNotesProps {
-  notes: string;
+  initalNotes: string;
   city: City;
-  handleNotesChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSave: (newComment: string) => void;
+  userEditingTruckNorrisData: boolean;
+  setUserEditingTruckNorrisData: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // ============================================================================
